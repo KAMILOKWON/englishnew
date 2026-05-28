@@ -1419,3 +1419,92 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* === Track B: consent block === */
+.consent-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.consent-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.consent-group-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.consent-version {
+  font-size: 0.72rem;
+  color: var(--muted, #6b7280);
+  white-space: nowrap;
+}
+
+.consent-note {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.consent-item {
+  background: var(--surface, #fff);
+}
+
+.consent-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.consent-required {
+  color: var(--mint, #2563eb);
+}
+
+.consent-summary {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted, #6b7280);
+}
+
+.consent-summary a {
+  color: var(--mint, #2563eb);
+  text-decoration: underline;
+}
+
+.consent-optional {
+  opacity: 0.95;
+}
+
+/* === Track B: channel add CTA (thanks page) === */
+.channel-cta {
+  margin: 18px 0;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+  border: 2px solid var(--mint, #2563eb);
+}
+
+.channel-cta-btn {
+  font-size: 1.05rem;
+  padding: 14px 24px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
+}
+
+.channel-cta-hint {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--muted, #6b7280);
+}
