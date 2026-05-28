@@ -79,49 +79,470 @@ function seedData() {
   const customers = readStore(STORAGE_KEYS.customers, []);
 
   if (messages.length === 0) {
-    writeStore(STORAGE_KEYS.messages, [
+    const now = new Date().toISOString();
+    const seedTopics = [
       {
-        id: uid("msg"),
         sendDate: todayISO(),
-        title: "오늘의 1분 영어",
+        title: "오늘의 1분 영어 · 회의",
         englishPhrase: "I'm tied up right now.",
         koreanMeaning: "지금 좀 바빠요.",
         pronunciation: "아임 타이드 업 라잇 나우",
         explanation:
-          "회의, 통화, 업무 중 바로 응답하기 어려울 때 쓰는 자연스러운 표현입니다.",
+          "회의, 통화, 업무 중 바로 응답하기 어려울 때 정중하게 쓰는 자연스러운 표현입니다.",
         exampleSentence1:
           "I'm tied up right now, but I'll call you back in 10 minutes.",
-        exampleSentence2:
-          "Can we talk later? I'm tied up with a client.",
+        exampleSentence2: "Can we talk later? I'm tied up with a client.",
         quizQuestion: '"지금 좀 바빠요"를 영어로 고르면?',
         quizAnswer: "I'm tied up right now.",
         ctaLabel: "예문과 퀴즈 보기",
-        ctaUrl: "",
         status: "ready",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       },
       {
-        id: uid("msg"),
-        sendDate: offsetDate(1),
-        title: "내일의 1분 영어",
+        title: "1분 영어 · 회의",
         englishPhrase: "Let me get back to you.",
         koreanMeaning: "확인하고 다시 말씀드릴게요.",
         pronunciation: "렛 미 겟 백 투 유",
         explanation:
           "즉답하기 어렵지만 책임 있게 다시 답하겠다는 인상을 주는 업무 영어입니다.",
-        exampleSentence1:
-          "Let me get back to you after I check the schedule.",
+        exampleSentence1: "Let me get back to you after I check the schedule.",
         exampleSentence2: "That's a good question. Let me get back to you.",
         quizQuestion: '"확인하고 다시 말씀드릴게요"에 가까운 표현은?',
         quizAnswer: "Let me get back to you.",
         ctaLabel: "복습하기",
-        ctaUrl: "",
-        status: "draft",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        status: "ready",
       },
-    ]);
+      {
+        title: "1분 영어 · 이메일",
+        englishPhrase: "Please find the file attached.",
+        koreanMeaning: "파일을 첨부해 드립니다.",
+        pronunciation: "플리즈 파인드 더 파일 어태치드",
+        explanation:
+          "이메일에서 첨부 파일을 안내할 때 가장 자주 쓰는 격식 있는 표현입니다.",
+        exampleSentence1: "Please find the file attached for your review.",
+        exampleSentence2: "Please find attached the revised contract.",
+        quizQuestion: '"파일을 첨부해 드립니다"에 가까운 표현은?',
+        quizAnswer: "Please find the file attached.",
+        ctaLabel: "복습하기",
+        status: "ready",
+      },
+      {
+        title: "1분 영어 · 전화",
+        englishPhrase: "Could you speak up a little?",
+        koreanMeaning: "조금만 크게 말씀해 주시겠어요?",
+        pronunciation: "쿠쥬 스픽 업 어 리틀",
+        explanation:
+          "전화나 화상 회의에서 소리가 작게 들릴 때 정중하게 요청하는 표현입니다.",
+        exampleSentence1: "Sorry, could you speak up a little? It's a bit noisy.",
+        exampleSentence2: "Could you speak up a little? I can barely hear you.",
+        quizQuestion: '"조금만 크게 말씀해 주시겠어요?"에 가까운 표현은?',
+        quizAnswer: "Could you speak up a little?",
+        ctaLabel: "복습하기",
+        status: "ready",
+      },
+      {
+        title: "1분 영어 · 스몰토크",
+        englishPhrase: "How's your day going so far?",
+        koreanMeaning: "오늘 하루 어떻게 보내고 계세요?",
+        pronunciation: "하우즈 유어 데이 고잉 소 파",
+        explanation:
+          "동료나 거래처와 가볍게 대화를 시작할 때 쓰기 좋은 스몰토크 질문입니다.",
+        exampleSentence1: "Hey, how's your day going so far?",
+        exampleSentence2: "How's your day going so far? Busy as usual?",
+        quizQuestion: '"오늘 하루 어떻게 보내고 계세요?"에 가까운 표현은?',
+        quizAnswer: "How's your day going so far?",
+        ctaLabel: "복습하기",
+        status: "ready",
+      },
+      {
+        title: "1분 영어 · 협상",
+        englishPhrase: "Let's meet in the middle.",
+        koreanMeaning: "서로 조금씩 양보합시다.",
+        pronunciation: "렛츠 밋 인 더 미들",
+        explanation:
+          "가격이나 조건 협상에서 절충안을 제안할 때 쓰는 부드러운 표현입니다.",
+        exampleSentence1: "We're not far apart. Let's meet in the middle.",
+        exampleSentence2: "How about we meet in the middle on the price?",
+        quizQuestion: '"서로 조금씩 양보합시다"에 가까운 표현은?',
+        quizAnswer: "Let's meet in the middle.",
+        ctaLabel: "복습하기",
+        status: "ready",
+      },
+      {
+        title: "1분 영어 · 여행",
+        englishPhrase: "Where can I catch a taxi?",
+        koreanMeaning: "택시는 어디서 탈 수 있나요?",
+        pronunciation: "웨어 캔 아이 캐치 어 택시",
+        explanation:
+          "공항이나 호텔에서 택시 승강장 위치를 물어볼 때 쓰는 실용 여행 표현입니다.",
+        exampleSentence1: "Excuse me, where can I catch a taxi to downtown?",
+        exampleSentence2: "Where can I catch a taxi at this hour?",
+        quizQuestion: '"택시는 어디서 탈 수 있나요?"에 가까운 표현은?',
+        quizAnswer: "Where can I catch a taxi?",
+        ctaLabel: "복습하기",
+        status: "ready",
+      },
+      {
+        title: "1분 영어 · 일상",
+        englishPhrase: "I'll take a rain check.",
+        koreanMeaning: "다음 기회로 미룰게요.",
+        pronunciation: "아일 테이크 어 레인 체크",
+        explanation:
+          "초대나 약속을 정중하게 거절하면서 다음을 기약할 때 쓰는 관용 표현입니다.",
+        exampleSentence1: "I'm swamped today. Can I take a rain check?",
+        exampleSentence2: "Thanks for the invite, but I'll take a rain check.",
+        quizQuestion: '"다음 기회로 미룰게요"에 가까운 표현은?',
+        quizAnswer: "I'll take a rain check.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 회의",
+        englishPhrase: "Let's circle back to that later.",
+        koreanMeaning: "그건 나중에 다시 다루죠.",
+        pronunciation: "렛츠 서클 백 투 댓 레이러",
+        explanation:
+          "회의 중 논점에서 잠시 벗어났을 때 나중에 다시 논의하자고 제안하는 표현입니다.",
+        exampleSentence1: "Good point. Let's circle back to that later.",
+        exampleSentence2:
+          "Let's circle back to that after we cover the budget.",
+        quizQuestion: '"그건 나중에 다시 다루죠"에 가까운 표현은?',
+        quizAnswer: "Let's circle back to that later.",
+        ctaLabel: "복습하기",
+        status: "ready",
+      },
+      {
+        title: "1분 영어 · 이메일",
+        englishPhrase: "Just a quick follow-up on my last email.",
+        koreanMeaning: "지난 이메일에 대해 간단히 확인차 연락드립니다.",
+        pronunciation: "저스트 어 퀵 팔로우업 온 마이 라스트 이메일",
+        explanation:
+          "답장이 없는 메일을 정중하게 다시 상기시킬 때 쓰는 비즈니스 표현입니다.",
+        exampleSentence1:
+          "Just a quick follow-up on my last email about the invoice.",
+        exampleSentence2:
+          "Just a quick follow-up — have you had a chance to review it?",
+        quizQuestion: '"간단히 확인차 연락드립니다"에 가까운 표현은?',
+        quizAnswer: "Just a quick follow-up on my last email.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 전화",
+        englishPhrase: "May I ask who's calling?",
+        koreanMeaning: "전화 거신 분이 누구신지 여쭤봐도 될까요?",
+        pronunciation: "메이 아이 애스크 후즈 콜링",
+        explanation:
+          "전화를 받았을 때 상대방의 신원을 정중하게 묻는 표준 표현입니다.",
+        exampleSentence1: "Good morning. May I ask who's calling?",
+        exampleSentence2: "May I ask who's calling, please?",
+        quizQuestion: '"전화 거신 분이 누구신지 여쭤봐도 될까요?"에 가까운 표현은?',
+        quizAnswer: "May I ask who's calling?",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 스몰토크",
+        englishPhrase: "Long time no see!",
+        koreanMeaning: "오랜만이에요!",
+        pronunciation: "롱 타임 노 시",
+        explanation:
+          "오랜만에 만난 사람에게 반가움을 표현하는 가장 흔한 인사말입니다.",
+        exampleSentence1: "Long time no see! How have you been?",
+        exampleSentence2: "Wow, long time no see! You look great.",
+        quizQuestion: '"오랜만이에요!"에 가까운 표현은?',
+        quizAnswer: "Long time no see!",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 협상",
+        englishPhrase: "That's a bit out of our budget.",
+        koreanMeaning: "그건 저희 예산을 조금 초과하네요.",
+        pronunciation: "댓츠 어 빗 아웃 오브 아워 버짓",
+        explanation:
+          "제안받은 가격이 부담스러울 때 완곡하게 거절하며 조정을 유도하는 표현입니다.",
+        exampleSentence1:
+          "That's a bit out of our budget. Can we adjust the scope?",
+        exampleSentence2:
+          "Honestly, that's a bit out of our budget for this quarter.",
+        quizQuestion: '"그건 저희 예산을 조금 초과하네요"에 가까운 표현은?',
+        quizAnswer: "That's a bit out of our budget.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 여행",
+        englishPhrase: "Do you have any rooms available tonight?",
+        koreanMeaning: "오늘 밤 묵을 수 있는 방이 있나요?",
+        pronunciation: "두 유 해브 애니 룸즈 어베일러블 투나잇",
+        explanation:
+          "예약 없이 호텔에서 빈 방을 물어볼 때 쓰는 실용 여행 표현입니다.",
+        exampleSentence1: "Hi, do you have any rooms available tonight?",
+        exampleSentence2:
+          "Do you have any rooms available tonight for two guests?",
+        quizQuestion: '"오늘 밤 묵을 수 있는 방이 있나요?"에 가까운 표현은?',
+        quizAnswer: "Do you have any rooms available tonight?",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 일상",
+        englishPhrase: "It's totally up to you.",
+        koreanMeaning: "전적으로 당신에게 달렸어요.",
+        pronunciation: "잇츠 토털리 업 투 유",
+        explanation:
+          "선택을 상대에게 맡길 때 부담 없이 쓰는 자연스러운 일상 표현입니다.",
+        exampleSentence1:
+          "Pizza or pasta? It's totally up to you.",
+        exampleSentence2: "Where we go is totally up to you.",
+        quizQuestion: '"전적으로 당신에게 달렸어요"에 가까운 표현은?',
+        quizAnswer: "It's totally up to you.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 회의",
+        englishPhrase: "Let's keep this brief.",
+        koreanMeaning: "간단하게 하고 끝냅시다.",
+        pronunciation: "렛츠 킵 디스 브리프",
+        explanation:
+          "회의를 짧고 효율적으로 진행하자고 제안할 때 쓰는 표현입니다.",
+        exampleSentence1: "We're all busy, so let's keep this brief.",
+        exampleSentence2: "Let's keep this brief and stick to the agenda.",
+        quizQuestion: '"간단하게 하고 끝냅시다"에 가까운 표현은?',
+        quizAnswer: "Let's keep this brief.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 이메일",
+        englishPhrase: "Let me know if you have any questions.",
+        koreanMeaning: "궁금한 점이 있으면 알려주세요.",
+        pronunciation: "렛 미 노 이프 유 해브 애니 퀘스천스",
+        explanation:
+          "이메일을 마무리할 때 정중하게 추가 문의를 유도하는 표현입니다.",
+        exampleSentence1:
+          "I've attached the report. Let me know if you have any questions.",
+        exampleSentence2:
+          "Let me know if you have any questions about the proposal.",
+        quizQuestion: '"궁금한 점이 있으면 알려주세요"에 가까운 표현은?',
+        quizAnswer: "Let me know if you have any questions.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 전화",
+        englishPhrase: "I'll put you through.",
+        koreanMeaning: "연결해 드리겠습니다.",
+        pronunciation: "아일 풋 유 쓰루",
+        explanation:
+          "전화를 다른 담당자에게 돌려줄 때 쓰는 표준 업무 표현입니다.",
+        exampleSentence1: "Sure, I'll put you through to the sales team.",
+        exampleSentence2: "Please hold. I'll put you through now.",
+        quizQuestion: '"연결해 드리겠습니다"에 가까운 표현은?',
+        quizAnswer: "I'll put you through.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 스몰토크",
+        englishPhrase: "I really appreciate your help.",
+        koreanMeaning: "도와주셔서 정말 감사해요.",
+        pronunciation: "아이 리얼리 어프리시에이트 유어 헬프",
+        explanation:
+          "단순한 thank you보다 진심을 담아 감사를 전할 때 쓰는 표현입니다.",
+        exampleSentence1: "I really appreciate your help with the move.",
+        exampleSentence2:
+          "Thanks again — I really appreciate your help on this.",
+        quizQuestion: '"도와주셔서 정말 감사해요"에 가까운 표현은?',
+        quizAnswer: "I really appreciate your help.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 협상",
+        englishPhrase: "Can we revisit the terms?",
+        koreanMeaning: "조건을 다시 검토해 볼 수 있을까요?",
+        pronunciation: "캔 위 리비짓 더 텀스",
+        explanation:
+          "계약이나 거래 조건을 다시 논의하자고 정중하게 제안하는 표현입니다.",
+        exampleSentence1: "Before we sign, can we revisit the terms?",
+        exampleSentence2:
+          "Can we revisit the terms on the delivery timeline?",
+        quizQuestion: '"조건을 다시 검토해 볼 수 있을까요?"에 가까운 표현은?',
+        quizAnswer: "Can we revisit the terms?",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 여행",
+        englishPhrase: "Could I get a window seat?",
+        koreanMeaning: "창가 자리로 받을 수 있을까요?",
+        pronunciation: "쿠드 아이 겟 어 윈도우 싯",
+        explanation:
+          "비행기나 기차에서 좌석을 요청할 때 쓰는 실용 여행 표현입니다.",
+        exampleSentence1: "Could I get a window seat, please?",
+        exampleSentence2:
+          "If possible, could I get a window seat near the front?",
+        quizQuestion: '"창가 자리로 받을 수 있을까요?"에 가까운 표현은?',
+        quizAnswer: "Could I get a window seat?",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 일상",
+        englishPhrase: "I'm running a bit late.",
+        koreanMeaning: "조금 늦을 것 같아요.",
+        pronunciation: "아임 러닝 어 빗 레이트",
+        explanation:
+          "약속이나 미팅에 늦을 때 미리 정중하게 알리는 자연스러운 표현입니다.",
+        exampleSentence1: "Sorry, I'm running a bit late. Be there in 5.",
+        exampleSentence2: "Traffic is bad, so I'm running a bit late.",
+        quizQuestion: '"조금 늦을 것 같아요"에 가까운 표현은?',
+        quizAnswer: "I'm running a bit late.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 회의",
+        englishPhrase: "Let's table this for now.",
+        koreanMeaning: "이건 일단 보류해 둡시다.",
+        pronunciation: "렛츠 테이블 디스 포 나우",
+        explanation:
+          "안건을 지금 결정하지 않고 잠시 미뤄두자고 할 때 쓰는 회의 표현입니다.",
+        exampleSentence1:
+          "We need more data, so let's table this for now.",
+        exampleSentence2: "Let's table this for now and move on.",
+        quizQuestion: '"이건 일단 보류해 둡시다"에 가까운 표현은?',
+        quizAnswer: "Let's table this for now.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 이메일",
+        englishPhrase: "Apologies for the delayed response.",
+        koreanMeaning: "답장이 늦어 죄송합니다.",
+        pronunciation: "어팔러지스 포 더 딜레이드 리스폰스",
+        explanation:
+          "회신이 늦어졌을 때 격식 있게 사과하는 비즈니스 이메일 표현입니다.",
+        exampleSentence1:
+          "Apologies for the delayed response — I was out of office.",
+        exampleSentence2:
+          "Apologies for the delayed response to your inquiry.",
+        quizQuestion: '"답장이 늦어 죄송합니다"에 가까운 표현은?',
+        quizAnswer: "Apologies for the delayed response.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 전화",
+        englishPhrase: "Can I take a message?",
+        koreanMeaning: "메모를 남겨 드릴까요?",
+        pronunciation: "캔 아이 테이크 어 메시지",
+        explanation:
+          "찾는 사람이 부재중일 때 메시지를 받아두겠다고 제안하는 표현입니다.",
+        exampleSentence1: "She's not in right now. Can I take a message?",
+        exampleSentence2: "Can I take a message and have her call you back?",
+        quizQuestion: '"메모를 남겨 드릴까요?"에 가까운 표현은?',
+        quizAnswer: "Can I take a message?",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 스몰토크",
+        englishPhrase: "Any plans for the weekend?",
+        koreanMeaning: "주말에 무슨 계획 있어요?",
+        pronunciation: "애니 플랜스 포 더 위켄드",
+        explanation:
+          "동료와 가볍게 대화를 이어갈 때 쓰기 좋은 스몰토크 질문입니다.",
+        exampleSentence1: "Any plans for the weekend?",
+        exampleSentence2: "So, any plans for the weekend, or just relaxing?",
+        quizQuestion: '"주말에 무슨 계획 있어요?"에 가까운 표현은?',
+        quizAnswer: "Any plans for the weekend?",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 협상",
+        englishPhrase: "Let's find a win-win solution.",
+        koreanMeaning: "서로에게 좋은 방법을 찾아봅시다.",
+        pronunciation: "렛츠 파인드 어 윈윈 솔루션",
+        explanation:
+          "양측 모두에게 이로운 결론을 지향하자고 제안하는 협상 표현입니다.",
+        exampleSentence1:
+          "I'm sure we can find a win-win solution here.",
+        exampleSentence2: "Let's find a win-win solution that works for both.",
+        quizQuestion: '"서로에게 좋은 방법을 찾아봅시다"에 가까운 표현은?',
+        quizAnswer: "Let's find a win-win solution.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 여행",
+        englishPhrase: "Is this the right platform for the train?",
+        koreanMeaning: "이 기차를 타려면 이 승강장이 맞나요?",
+        pronunciation: "이즈 디스 더 라잇 플랫폼 포 더 트레인",
+        explanation:
+          "역에서 승강장 위치를 확인할 때 쓰는 실용 여행 표현입니다.",
+        exampleSentence1:
+          "Excuse me, is this the right platform for the train to Busan?",
+        exampleSentence2:
+          "Is this the right platform, or do I need to go upstairs?",
+        quizQuestion: '"이 승강장이 맞나요?"에 가까운 표현은?',
+        quizAnswer: "Is this the right platform for the train?",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 일상",
+        englishPhrase: "Let's grab a coffee sometime.",
+        koreanMeaning: "언제 커피 한잔해요.",
+        pronunciation: "렛츠 그랩 어 커피 섬타임",
+        explanation:
+          "가볍게 다음 만남을 제안할 때 쓰는 친근한 일상 표현입니다.",
+        exampleSentence1: "It was great catching up. Let's grab a coffee sometime.",
+        exampleSentence2: "We should grab a coffee sometime next week.",
+        quizQuestion: '"언제 커피 한잔해요"에 가까운 표현은?',
+        quizAnswer: "Let's grab a coffee sometime.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+      {
+        title: "1분 영어 · 회의",
+        englishPhrase: "Let's wrap things up.",
+        koreanMeaning: "이제 마무리합시다.",
+        pronunciation: "렛츠 랩 띵스 업",
+        explanation:
+          "회의나 대화를 정리하고 끝낼 때 쓰는 자연스러운 표현입니다.",
+        exampleSentence1: "We're out of time, so let's wrap things up.",
+        exampleSentence2: "Let's wrap things up and send out the notes.",
+        quizQuestion: '"이제 마무리합시다"에 가까운 표현은?',
+        quizAnswer: "Let's wrap things up.",
+        ctaLabel: "복습하기",
+        status: "draft",
+      },
+    ];
+    writeStore(
+      STORAGE_KEYS.messages,
+      seedTopics.map((topic, index) => ({
+        id: uid("msg"),
+        sendDate: topic.sendDate ?? offsetDate(index),
+        title: topic.title,
+        englishPhrase: topic.englishPhrase,
+        koreanMeaning: topic.koreanMeaning,
+        pronunciation: topic.pronunciation,
+        explanation: topic.explanation,
+        exampleSentence1: topic.exampleSentence1,
+        exampleSentence2: topic.exampleSentence2,
+        quizQuestion: topic.quizQuestion,
+        quizAnswer: topic.quizAnswer,
+        ctaLabel: topic.ctaLabel,
+        ctaUrl: "",
+        status: topic.status,
+        createdAt: now,
+        updatedAt: now,
+      }))
+    );
   }
 
   if (customers.length === 0) {
@@ -269,22 +690,22 @@ const productSections = [
     id: "recommended",
     products: [
       {
-        title: "매일 아침, 카톡으로 받는 BBC 팟캐스트 영어",
+        title: "매일 아침, 카톡으로 받는 글로벌 뉴스 영어",
         original: "42,000원",
         discount: "30%",
         price: "29,400원",
         countdown: "종료까지 01:48:47 남음",
         theme: "red",
-        tag: "BBC",
+        tag: "NEWS",
       },
       {
-        title: "매일 아침, 카톡으로 받는 미드 프렌즈 영어",
+        title: "매일 아침, 카톡으로 받는 미드 회화 영어",
         original: "42,000원",
         discount: "30%",
         price: "29,400원",
         countdown: "종료까지 01:48:47 남음",
         theme: "yellow",
-        tag: "FRIENDS",
+        tag: "SITCOM",
       },
       {
         title: "출근길에 바로 쓰는 실전 비즈니스 영어",
@@ -444,7 +865,7 @@ function renderHome() {
           </div>
         </div>
         <div class="store-hero-copy">
-          <h1>국내 최다 카톡 영어 루틴<br />데일리톡잉글리시와 시작하다</h1>
+          <h1>매일 받는 카톡 영어 루틴<br />데일리톡잉글리시와 시작하다</h1>
           <p>매일 아침, 카톡으로 도착하는 영어 표현 · 해설 · 복습 퀴즈</p>
           <a href="#subscribe">첫 메시지 받아보기</a>
         </div>
@@ -486,7 +907,7 @@ function renderProductCard(product) {
         <p class="original-price">${escapeHtml(product.original)}</p>
         <p class="sale-price"><span>${escapeHtml(product.discount)}</span> ${escapeHtml(product.price)}</p>
         <p class="time-left">◷ ${escapeHtml(product.countdown)}</p>
-        <p class="pay-mark">N pay</p>
+        <p class="pay-mark">카카오페이 · 네이버페이</p>
       </a>
     </article>
   `;

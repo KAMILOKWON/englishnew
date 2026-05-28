@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TODO(launch): replace https://example.com with the real production domain before launch.
+
+  NOTE: This is a single-page app that uses hash-based routing
+  (e.g. #subscribe, #archive, #admin, #recommended). Search engines
+  generally do not index URL fragments after "#", so individual hash
+  routes cannot be reliably listed in a sitemap. Only the base URL is
+  listed below as the canonical, crawlable entry point. If client-side
+  routes need to be indexed in the future, migrate to the History API
+  (path-based routing) and add each path here.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://example.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
