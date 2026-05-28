@@ -525,6 +525,12 @@ function shell(content) {
         <div class="container">
           <strong>Daily Talk English</strong>
           <span class="muted"> · 매일 아침, 카톡으로 받는 영어 루틴</span>
+          <nav class="footer-links" aria-label="정책 및 고객 안내">
+            <a href="#privacy">개인정보처리방침</a>
+            <a href="#terms">이용약관</a>
+            <a href="#refund">환불/해지 정책</a>
+            <a href="#unsubscribe">알림톡 수신거부</a>
+          </nav>
         </div>
       </footer>
     </div>
@@ -1510,6 +1516,10 @@ function render() {
       archive: renderArchive,
       mypage: renderMypage,
       admin: renderAdmin,
+      privacy: renderPrivacy,
+      terms: renderTerms,
+      refund: renderRefund,
+      unsubscribe: renderUnsubscribe,
     };
     app.innerHTML = (views[name] || renderHome)();
     bindForms();
@@ -1542,6 +1552,11 @@ function bindForms() {
   const messageForm = document.querySelector("#message-form");
   if (messageForm) {
     messageForm.addEventListener("submit", handleMessageSave);
+  }
+
+  const unsubscribeForm = document.querySelector("#unsubscribe-form");
+  if (unsubscribeForm) {
+    unsubscribeForm.addEventListener("submit", handleUnsubscribe);
   }
 }
 
@@ -1800,6 +1815,274 @@ async function copyText(text) {
   area.select();
   document.execCommand("copy");
   area.remove();
+}
+
+/* === Track A: legal/policy pages + unsubscribe flow === */
+
+function policyDraftNote() {
+  return `
+    <div class="policy-draft-note" role="note">
+      <strong>MVP 초안 안내</strong>
+      <p>본 문서는 서비스 준비 단계에서 작성된 초안이며, 법무 검토 완료 후 정식 문서로 대체됩니다. 일부 항목(회사명·연락처 등)은 운영 준비 중인 임시 값입니다.</p>
+    </div>
+  `;
+}
+
+function renderPrivacy() {
+  return shell(`
+    <main class="page">
+      <section class="container">
+        <div class="page-title">
+          <div class="eyebrow"><span class="pulse-dot"></span>개인정보 처리방침</div>
+          <h1>개인정보 처리방침</h1>
+          <p class="lead">Daily Talk English(이하 "서비스")는 정보주체의 개인정보를 소중히 다루며, 관련 법령을 준수합니다.</p>
+        </div>
+        ${policyDraftNote()}
+        <article class="panel policy-doc">
+          <h2>1. 수집하는 개인정보 항목</h2>
+          <ul class="policy-list">
+            <li><strong>필수 항목:</strong> 이름, 휴대폰 번호, 관심사, 영어 레벨, 수신 희망 시간</li>
+            <li><strong>선택 항목:</strong> 이메일 주소</li>
+            <li><strong>서비스 이용 과정에서 자동 생성·수집되는 항목:</strong> 알림톡 발송 로그, 링크 클릭 로그, 수신 상태(active/unsubscribed), 동의 일시</li>
+          </ul>
+
+          <h2>2. 개인정보의 수집·이용 목적</h2>
+          <ul class="policy-list">
+            <li>매일 영어 학습 콘텐츠(카카오 알림톡)의 제작·발송 및 본인 식별</li>
+            <li>관심사·레벨에 따른 콘텐츠 맞춤 제공</li>
+            <li>발송·클릭 로그를 통한 서비스 품질 개선 및 통계 분석</li>
+            <li>결제·구독 관리, 고객 문의 응대, 수신거부 처리</li>
+          </ul>
+
+          <h2>3. 개인정보의 보유·이용 기간</h2>
+          <ul class="policy-list">
+            <li>원칙적으로 수신 동의 철회(수신거부) 또는 회원 탈퇴 시 지체 없이 파기합니다.</li>
+            <li>다만, 관계 법령에 따라 보존이 필요한 경우 해당 기간 동안 보관합니다. (예: 전자상거래법에 따른 계약·결제 기록 5년, 소비자 불만·분쟁 처리 기록 3년)</li>
+            <li>발송·클릭 로그 등 통계 목적 자료는 비식별 처리 후 보관할 수 있습니다.</li>
+          </ul>
+
+          <h2>4. 개인정보의 파기 절차 및 방법</h2>
+          <ul class="policy-list">
+            <li><strong>파기 절차:</strong> 보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 내부 방침에 따라 파기 대상으로 분류 후 파기합니다.</li>
+            <li><strong>파기 방법:</strong> 전자적 파일은 복구 불가능한 방식으로 영구 삭제하며, 출력물은 분쇄하거나 소각합니다.</li>
+          </ul>
+
+          <h2>5. 정보주체의 권리·의무 및 행사 방법</h2>
+          <ul class="policy-list">
+            <li>정보주체는 언제든지 자신의 개인정보 열람·정정·삭제·처리정지를 요구할 수 있습니다.</li>
+            <li>수신 동의는 언제든지 철회할 수 있으며, <a href="#unsubscribe">알림톡 수신거부 페이지</a>에서 신청할 수 있습니다.</li>
+            <li>권리 행사는 아래 개인정보 보호책임자에게 서면·이메일 등으로 요청할 수 있으며, 서비스는 지체 없이 조치합니다.</li>
+          </ul>
+
+          <h2>6. 개인정보 보호책임자 및 문의처</h2>
+          <ul class="policy-list">
+            <li><strong>회사명:</strong> 운영 준비 중</li>
+            <li><strong>개인정보 보호책임자:</strong> 운영 준비 중</li>
+            <li><strong>연락처(이메일):</strong> 운영 준비 중</li>
+            <li><strong>문의 전화:</strong> 운영 준비 중</li>
+          </ul>
+          <p class="muted">시행일: 운영 준비 중 (정식 시행일은 법무 검토 후 고지됩니다.)</p>
+        </article>
+      </section>
+    </main>
+  `);
+}
+
+function renderTerms() {
+  return shell(`
+    <main class="page">
+      <section class="container">
+        <div class="page-title">
+          <div class="eyebrow"><span class="pulse-dot"></span>이용약관</div>
+          <h1>서비스 이용약관</h1>
+          <p class="lead">본 약관은 Daily Talk English 서비스의 이용 조건과 절차, 이용자와 운영자의 권리·의무를 규정합니다.</p>
+        </div>
+        ${policyDraftNote()}
+        <article class="panel policy-doc">
+          <h2>제1조 (목적)</h2>
+          <p>본 약관은 서비스가 제공하는 카카오 알림톡 기반 영어 학습 콘텐츠 및 관련 제반 서비스(이하 "서비스")의 이용과 관련하여 운영자와 이용자 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
+
+          <h2>제2조 (정의)</h2>
+          <ul class="policy-list">
+            <li><strong>이용자:</strong> 본 약관에 동의하고 서비스를 이용하는 자</li>
+            <li><strong>구독:</strong> 일정 기간 동안 매일 학습 콘텐츠를 받는 유료/무료 이용 형태</li>
+            <li><strong>알림톡:</strong> 카카오톡 채널을 통해 발송되는 학습 메시지</li>
+          </ul>
+
+          <h2>제3조 (서비스의 내용)</h2>
+          <ul class="policy-list">
+            <li>매일 영어 표현·해설·예문·복습 퀴즈 등 학습 콘텐츠의 카카오 알림톡 발송</li>
+            <li>지난 콘텐츠 아카이브 및 복습 링크 제공</li>
+            <li>관심사·레벨 기반 맞춤 콘텐츠 제공</li>
+          </ul>
+
+          <h2>제4조 (결제 및 구독)</h2>
+          <ul class="policy-list">
+            <li>유료 구독의 요금·결제 수단·구독 기간은 결제 화면에 표시된 내용에 따릅니다.</li>
+            <li>구독은 별도 해지 신청이 없는 한 약정된 주기에 따라 갱신될 수 있으며, 갱신 전 안내합니다.</li>
+          </ul>
+
+          <h2>제5조 (해지 및 환불)</h2>
+          <p>이용자는 언제든지 구독을 해지할 수 있으며, 환불은 <a href="#refund">환불/해지 정책</a>에 따릅니다. 알림톡 수신만 중단하려는 경우 <a href="#unsubscribe">수신거부 페이지</a>를 이용할 수 있습니다.</p>
+
+          <h2>제6조 (이용자의 의무)</h2>
+          <p>이용자는 타인의 정보를 도용하거나 서비스 운영을 방해하는 행위를 하여서는 안 됩니다. 제공받은 콘텐츠를 운영자의 동의 없이 무단으로 복제·배포할 수 없습니다.</p>
+
+          <h2>제7조 (면책)</h2>
+          <p>운영자는 천재지변, 카카오 등 제3자 플랫폼 장애, 이용자의 귀책 등 운영자의 합리적 통제를 벗어난 사유로 인한 서비스 중단·지연에 대해 책임을 지지 않습니다. 학습 콘텐츠는 참고용으로 제공되며 특정 결과를 보증하지 않습니다.</p>
+
+          <h2>제8조 (분쟁 해결 및 준거법)</h2>
+          <p>본 약관은 대한민국 법령에 따라 해석되며, 서비스 이용과 관련한 분쟁은 관련 법령 및 운영자 소재지를 관할하는 법원을 전속 관할 법원으로 합니다.</p>
+
+          <p class="muted">시행일: 운영 준비 중 (정식 시행일은 법무 검토 후 고지됩니다.)</p>
+        </article>
+      </section>
+    </main>
+  `);
+}
+
+function renderRefund() {
+  return shell(`
+    <main class="page">
+      <section class="container">
+        <div class="page-title">
+          <div class="eyebrow"><span class="pulse-dot"></span>환불/해지 정책</div>
+          <h1>환불 및 해지 정책</h1>
+          <p class="lead">구독 해지 시점, 환불 가능 기간과 절차를 안내합니다.</p>
+        </div>
+        ${policyDraftNote()}
+        <article class="panel policy-doc">
+          <h2>1. 구독 해지 시점</h2>
+          <ul class="policy-list">
+            <li>해지 신청은 언제든지 가능하며, 신청 즉시 다음 결제 주기의 자동 갱신이 중단됩니다.</li>
+            <li>이미 결제된 현재 주기의 잔여 기간 동안은 콘텐츠 수신이 유지될 수 있습니다.</li>
+          </ul>
+
+          <h2>2. 환불 가능 기간</h2>
+          <ul class="policy-list">
+            <li>결제일로부터 7일 이내이며 콘텐츠를 1회도 수신하지 않은 경우 전액 환불됩니다.</li>
+            <li>일부 콘텐츠를 수신한 경우, 이미 제공된 일수를 제외한 잔여 기간에 대해 일할 계산하여 환불합니다.</li>
+          </ul>
+
+          <h2>3. 환불 불가 사유</h2>
+          <ul class="policy-list">
+            <li>구독 기간 대부분의 콘텐츠를 이미 수신·이용한 경우</li>
+            <li>프로모션·무료 체험 등 무상으로 제공된 이용분</li>
+            <li>이용자의 약관 위반으로 이용이 제한된 경우</li>
+          </ul>
+
+          <h2>4. 알림톡 중단 시점</h2>
+          <ul class="policy-list">
+            <li>수신거부 신청 시 알림톡 발송은 신청 처리 시점부터 중단됩니다.</li>
+            <li>이미 카카오로 전송 예약된 메시지는 기술적 사유로 1건 정도 발송될 수 있으나, 이후 발송은 중단됩니다.</li>
+            <li>알림톡 수신만 중단하려면 <a href="#unsubscribe">수신거부 페이지</a>를 이용하세요. 환불을 포함한 구독 해지는 별도 문의가 필요합니다.</li>
+          </ul>
+
+          <h2>5. 환불 신청 방법</h2>
+          <p>환불은 개인정보 보호책임자(문의처: 운영 준비 중)에게 이메일로 신청할 수 있으며, 결제 수단·결제일을 함께 알려주시면 신속히 처리됩니다.</p>
+          <p class="muted">시행일: 운영 준비 중 (정식 시행일은 법무 검토 후 고지됩니다.)</p>
+        </article>
+      </section>
+    </main>
+  `);
+}
+
+function renderUnsubscribe() {
+  const { params } = routeInfo();
+  if (params.get("done") === "1") {
+    return shell(`
+      <main class="page">
+        <section class="container">
+          <div class="page-title">
+            <div class="eyebrow"><span class="pulse-dot"></span>수신거부 완료</div>
+            <h1>수신거부가 접수되었습니다.</h1>
+            <p class="lead">요청해 주신 정보와 일치하는 수신 정보의 알림톡 수신을 중단했습니다.</p>
+          </div>
+          <article class="panel policy-doc">
+            <h2>수신 중단 시점</h2>
+            <p>알림톡 발송은 신청 처리 시점부터 중단됩니다. 다만 이미 카카오로 예약 전송된 메시지는 1건 정도 발송될 수 있으니 양해 부탁드립니다.</p>
+            <h2>재신청 경로</h2>
+            <p>다시 매일 영어 메시지를 받고 싶으시면 언제든지 <a href="#subscribe">수신 신청 페이지</a>에서 재신청하실 수 있습니다.</p>
+            <div class="button-row">
+              <a class="btn primary" href="#home">홈으로</a>
+              <a class="btn secondary" href="#subscribe">다시 신청하기</a>
+            </div>
+          </article>
+        </section>
+      </main>
+    `);
+  }
+
+  return shell(`
+    <main class="page">
+      <section class="container">
+        <div class="page-title">
+          <div class="eyebrow"><span class="pulse-dot"></span>알림톡 수신거부</div>
+          <h1>알림톡 수신을 중단할게요.</h1>
+          <p class="lead">신청 시 입력한 휴대폰 번호 또는 이메일을 입력하시면 해당 정보의 알림톡 수신을 중단합니다.</p>
+        </div>
+        <div class="admin-grid">
+          <form class="panel form" id="unsubscribe-form">
+            <div class="field">
+              <label for="unsub-phone">휴대폰 번호</label>
+              <input id="unsub-phone" name="phone" placeholder="010-1234-5678" />
+            </div>
+            <div class="field">
+              <label for="unsub-email">또는 이메일</label>
+              <input id="unsub-email" name="email" type="email" placeholder="you@example.com" />
+            </div>
+            <p class="muted">휴대폰 번호와 이메일 중 하나만 입력해도 됩니다.</p>
+            <button class="btn primary" type="submit">수신거부 신청</button>
+          </form>
+          <aside class="panel">
+            <h3>안내</h3>
+            <ul class="example-list">
+              <li>신청 즉시 일치하는 수신 정보의 알림톡 발송이 중단됩니다.</li>
+              <li>이미 예약된 메시지는 1건 정도 발송될 수 있습니다.</li>
+              <li>다시 받고 싶을 때는 수신 신청 페이지에서 재신청할 수 있습니다.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+    </main>
+  `);
+}
+
+function handleUnsubscribe(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const phone = (form.get("phone") || "").trim();
+  const email = (form.get("email") || "").trim();
+
+  if (!phone && !email) {
+    showToast("휴대폰 번호 또는 이메일을 입력해 주세요.");
+    return;
+  }
+
+  const customers = getCustomers();
+  const now = new Date().toISOString();
+  let matched = 0;
+  const updated = customers.map((customer) => {
+    const phoneMatch = phone && customer.phone && customer.phone.trim() === phone;
+    const emailMatch =
+      email &&
+      customer.email &&
+      customer.email.trim().toLowerCase() === email.toLowerCase();
+    if (phoneMatch || emailMatch) {
+      matched += 1;
+      return { ...customer, status: "unsubscribed", unsubscribedAt: now };
+    }
+    return customer;
+  });
+
+  if (matched === 0) {
+    showToast("일치하는 수신 정보를 찾지 못했습니다. 입력하신 정보를 다시 확인해 주세요.");
+    return;
+  }
+
+  writeStore(STORAGE_KEYS.customers, updated);
+  showToast(`${matched}건의 수신 정보를 수신거부 처리했습니다.`);
+  navigate("unsubscribe?done=1");
 }
 
 window.addEventListener("hashchange", render);
