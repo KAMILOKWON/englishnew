@@ -1360,6 +1360,8 @@ function phonePreview(message) {
   `;
 }
 
+const CONSENT_VERSION = "v2026-05-29";
+
 function renderSubscribe() {
   return shell(`
     <main class="page">
@@ -1416,12 +1418,45 @@ function renderSubscribe() {
                 카카오톡 채널을 추가했거나, 추가 후 메시지를 수신할 예정입니다.
               </span>
             </label>
-            <label class="checkbox-row">
-              <input type="checkbox" name="consentMarketing" required />
-              <span>
-                매일 영어 메시지와 서비스 안내를 카카오톡으로 받는 데 동의합니다. 실제 서비스에서는 수신 거부 방법을 함께 제공합니다.
-              </span>
-            </label>
+            <div class="consent-group">
+              <div class="consent-group-head">
+                <h3>동의 항목</h3>
+                <span class="consent-version">동의 문구 버전 ${escapeHtml(CONSENT_VERSION)}</span>
+              </div>
+              <p class="consent-note muted">필수 항목에 동의해야 수신 신청을 완료할 수 있습니다.</p>
+
+              <label class="checkbox-row consent-item">
+                <input type="checkbox" name="consentPrivacy" required />
+                <span>
+                  <strong class="consent-required">[필수]</strong> 개인정보 수집·이용 동의
+                  <small class="consent-summary">이름, 휴대폰 번호, 이메일을 수신 신청 처리와 메시지 발송 목적으로 수집·이용합니다. 자세한 내용은 <a href="#privacy">개인정보 처리방침</a>에서 확인하세요.</small>
+                </span>
+              </label>
+
+              <label class="checkbox-row consent-item">
+                <input type="checkbox" name="consentTerms" required />
+                <span>
+                  <strong class="consent-required">[필수]</strong> 이용약관 동의
+                  <small class="consent-summary">서비스 이용 조건과 책임 범위에 동의합니다. 전문은 <a href="#terms">이용약관</a>에서 확인하세요.</small>
+                </span>
+              </label>
+
+              <label class="checkbox-row consent-item">
+                <input type="checkbox" name="consentPhone" required />
+                <span>
+                  <strong class="consent-required">[필수]</strong> 알림톡 수신을 위한 휴대폰 번호 이용 동의
+                  <small class="consent-summary">입력한 휴대폰 번호를 카카오 알림톡 등 메시지 발송에 이용합니다. 자세한 내용은 <a href="#privacy">개인정보 처리방침</a>에서 확인하세요.</small>
+                </span>
+              </label>
+
+              <label class="checkbox-row consent-item consent-optional">
+                <input type="checkbox" name="consentMarketing" />
+                <span>
+                  <strong>[선택]</strong> 마케팅·광고성 정보 수신 동의
+                  <small class="consent-summary">이벤트, 프로모션 등 광고성 정보를 카카오톡으로 받는 데 동의합니다. 동의하지 않아도 수신 신청은 가능하며, 언제든지 수신 거부할 수 있습니다.</small>
+                </span>
+              </label>
+            </div>
             <button class="btn primary" type="submit">수신 신청 완료</button>
           </form>
 
@@ -1455,9 +1490,15 @@ function renderThanks() {
             latestProduct
               ? `${escapeHtml(latestProduct.title)} 결제가 완료되었습니다.`
               : "결제가 완료되었습니다."
-          } 내일부터 설정한 시간에 카카오톡 알림톡으로 영어 표현을 보내드립니다.</p>
+          } 매일 설정한 시간에 카카오톡 알림톡으로 영어 표현을 보내드립니다.</p>
+          <div class="channel-cta">
+            <strong class="channel-cta-title">카카오톡 채널을 꼭 추가해 주세요</strong>
+            <p class="channel-cta-hint">채널을 추가해야 알림톡이 도착합니다. 채널을 추가하면 다음 발송 시간(매일 오전 8:30 예정)에 맞춰 첫 알림톡이 도착하며, 보통 영업일 기준 24시간 이내에 받아보실 수 있습니다.</p>
+            <!-- TODO(launch): 실제 카카오톡 채널 추가 URL로 교체 -->
+            <a class="btn primary channel-cta-btn" href="#mypage">채널 추가 안내 보기</a>
+          </div>
           <div class="button-row">
-            <a class="btn primary" href="#today?date=${encodeURIComponent(message.sendDate)}&from=kakao">첫 알림톡 링크 미리보기</a>
+            <a class="btn secondary" href="#today?date=${encodeURIComponent(message.sendDate)}&from=kakao">첫 알림톡 링크 미리보기</a>
             <a class="btn secondary" href="#mypage">마이페이지 보기</a>
           </div>
         </div>
@@ -2165,6 +2206,19 @@ function bindForms() {
 function handleSubscribe(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
+
+  // 필수 동의: 개인정보 수집·이용 + 이용약관 + 휴대폰 번호 이용
+  const consentPrivacy = form.get("consentPrivacy") === "on";
+  const consentTerms = form.get("consentTerms") === "on";
+  const consentPhone = form.get("consentPhone") === "on";
+  const consentRequiredAgreed = consentPrivacy && consentTerms && consentPhone;
+
+  // native required를 우회한 제출에 대비해 JS에서도 필수 동의를 강제한다.
+  if (!consentRequiredAgreed) {
+    showToast("필수 동의 항목에 모두 동의해야 신청할 수 있습니다.");
+    return;
+  }
+
   const customers = getCustomers();
   customers.push({
     id: uid("cus"),
@@ -2173,7 +2227,14 @@ function handleSubscribe(event) {
     email: form.get("email").trim(),
     kakaoChannelAdded: form.get("kakaoChannelAdded") === "on",
     consentMarketing: form.get("consentMarketing") === "on",
+    consentRequiredAgreed,
+    consentVersion: CONSENT_VERSION,
     consentReceivedAt: new Date().toISOString(),
+    consentAt: new Date().toISOString(),
+    consentUserAgent: navigator.userAgent,
+    // 클라이언트에서는 IP를 확보할 수 없으므로 null로 둔다.
+    // 출시 시 서버가 신청 요청의 IP를 기록해야 한다.
+    consentIp: null,
     level: form.get("level"),
     interest: form.get("interest"),
     preferredTime: form.get("preferredTime"),
