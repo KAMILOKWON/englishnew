@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   orders: "daily-talk-orders",
   subscriptions: "daily-talk-subscriptions",
   adminTab: "daily-talk-admin-tab",
+  adminSession: "daily-talk-admin-session",
+  adminCustomerQuery: "daily-talk-admin-customer-query",
 };
 
 const app = document.querySelector("#app");
@@ -1554,7 +1556,135 @@ function renderArchive() {
   `);
 }
 
+// ---------------------------------------------------------------------------
+// Track C: 관리자 보안 게이트 + 운영 UX
+// ---------------------------------------------------------------------------
+// !!! 보안 경고 / SECURITY NOTICE !!!
+// 아래 비밀번호는 MVP 데모용 *클라이언트 사이드* 게이트입니다. 실제 보안이 아닙니다.
+// 비밀번호가 번들 JS에 그대로 노출되며 누구나 소스에서 확인할 수 있습니다.
+// 실제 인증은 서버 측 세션/토큰 검증으로 반드시 교체해야 합니다.
+// This passphrase is an MVP-only client-side gate. It is NOT real security:
+// the value ships in the JS bundle and anyone can read it. Replace with
+// real server-side auth (session/token) before production.
+const ADMIN_PASSPHRASE = "admin1234";
+
+function isAdminAuthenticated() {
+  return getItem(STORAGE_KEYS.adminSession) === "1";
+}
+
+function renderAdminLogin() {
+  return shell(`
+    <main class="page">
+      <section class="container">
+        <div class="admin-login-wrap">
+          <form class="panel form admin-login" id="admin-login-form">
+            <div class="eyebrow"><span class="pulse-dot"></span>운영 관리자</div>
+            <h1>관리자 로그인</h1>
+            <p class="muted">운영 관리자 비밀번호를 입력해 주세요.</p>
+            <div class="field">
+              <label for="admin-passphrase">비밀번호</label>
+              <input id="admin-passphrase" name="passphrase" type="password" autocomplete="off" required />
+            </div>
+            <p class="admin-login-error" id="admin-login-error" hidden>비밀번호가 올바르지 않습니다.</p>
+            <button class="btn primary" type="submit">로그인</button>
+            <p class="admin-login-note">MVP 데모용 클라이언트 사이드 게이트입니다. 실제 보안이 아닙니다.</p>
+          </form>
+        </div>
+      </section>
+    </main>
+  `);
+}
+
+// Lightweight reusable confirm modal. Renders an overlay into <body> and
+// resolves via the provided callback. Used for destructive/outbound actions.
+let confirmCleanup = null;
+function showConfirm(message, onConfirm) {
+  closeConfirm();
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.id = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <p class="modal-message">${escapeHtml(message)}</p>
+      <div class="modal-actions">
+        <button class="btn secondary" type="button" data-action="confirm-cancel">취소</button>
+        <button class="btn danger" type="button" data-action="confirm-ok">확인</button>
+      </div>
+    </div>
+  `;
+  const onKey = (event) => {
+    if (event.key === "Escape") closeConfirm();
+  };
+  confirmCleanup = () => {
+    document.removeEventListener("keydown", onKey);
+    overlay.remove();
+    confirmCleanup = null;
+  };
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) closeConfirm();
+  });
+  overlay.querySelector('[data-action="confirm-cancel"]').addEventListener(
+    "click",
+    () => closeConfirm(),
+  );
+  overlay.querySelector('[data-action="confirm-ok"]').addEventListener(
+    "click",
+    () => {
+      closeConfirm();
+      onConfirm();
+    },
+  );
+  document.addEventListener("keydown", onKey);
+  document.body.append(overlay);
+}
+
+function closeConfirm() {
+  if (confirmCleanup) confirmCleanup();
+}
+
+function getCustomerQuery() {
+  return readStore(STORAGE_KEYS.adminCustomerQuery, {
+    search: "",
+    status: "all",
+    sort: "latest",
+  });
+}
+
+function setCustomerQuery(patch) {
+  writeStore(STORAGE_KEYS.adminCustomerQuery, { ...getCustomerQuery(), ...patch });
+}
+
+function customerStatusLabel(status) {
+  if (status === "active") return "수신중";
+  if (status === "unsubscribed") return "수신거부";
+  return "중지";
+}
+
+function applyCustomerQuery(customers, query) {
+  const term = (query.search || "").trim().toLowerCase();
+  let filtered = customers.filter((customer) => {
+    if (query.status && query.status !== "all" && customer.status !== query.status) {
+      return false;
+    }
+    if (!term) return true;
+    return [customer.name, customer.phone, customer.email]
+      .map((value) => String(value || "").toLowerCase())
+      .some((value) => value.includes(term));
+  });
+  filtered = filtered.slice().sort((a, b) => {
+    if (query.sort === "name") {
+      return String(a.name || "").localeCompare(String(b.name || ""), "ko");
+    }
+    return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+  });
+  return filtered;
+}
+
 function renderAdmin() {
+  // Track C: client-side admin gate. Not real security (see ADMIN_PASSPHRASE).
+  if (!isAdminAuthenticated()) {
+    return renderAdminLogin();
+  }
   const tab = getItem(STORAGE_KEYS.adminTab) || "dashboard";
   const content = {
     dashboard: adminDashboard(),
@@ -1576,6 +1706,7 @@ function renderAdmin() {
             ${adminTabButton("messages", "콘텐츠", tab)}
             ${adminTabButton("customers", "고객", tab)}
             ${adminTabButton("logs", "로그", tab)}
+            <button class="admin-tab admin-logout" data-action="admin-logout">로그아웃</button>
           </div>
         </div>
         ${content}
@@ -1736,11 +1867,40 @@ function adminCustomers() {
   if (customers.length === 0) {
     return `<div class="empty-state">아직 수신 신청 고객이 없습니다.</div>`;
   }
+  const query = getCustomerQuery();
+  const filtered = applyCustomerQuery(customers, query);
+  const statusBtn = (value, label) =>
+    `<button class="filter-chip ${query.status === value ? "active" : ""}" type="button" data-action="customer-status-filter" data-value="${value}">${label}</button>`;
+  const sortBtn = (value, label) =>
+    `<button class="filter-chip ${query.sort === value ? "active" : ""}" type="button" data-action="customer-sort" data-value="${value}">${label}</button>`;
   return `
     <div class="toolbar">
       <h3>수신자 목록</h3>
       <button class="btn secondary small" data-action="export-customers">CSV 복사</button>
     </div>
+    <div class="customer-filters">
+      <input
+        id="customer-search-input"
+        class="customer-search"
+        type="search"
+        placeholder="이름·연락처·이메일 검색"
+        value="${escapeHtml(query.search || "")}"
+        aria-label="고객 검색"
+      />
+      <button class="btn secondary small" type="button" data-action="customer-search">검색</button>
+      ${query.search ? `<button class="btn secondary small" type="button" data-action="customer-search-clear">초기화</button>` : ""}
+      <div class="filter-group" role="group" aria-label="상태 필터">
+        ${statusBtn("all", "전체")}
+        ${statusBtn("active", "수신중")}
+        ${statusBtn("inactive", "중지")}
+        ${statusBtn("unsubscribed", "수신거부")}
+      </div>
+      <div class="filter-group" role="group" aria-label="정렬">
+        ${sortBtn("latest", "최신순")}
+        ${sortBtn("name", "이름순")}
+      </div>
+    </div>
+    <p class="muted customer-count">${filtered.length}명 표시 (전체 ${customers.length}명)</p>
     <div class="table-wrap">
       <table>
         <thead>
@@ -1754,14 +1914,17 @@ function adminCustomers() {
           </tr>
         </thead>
         <tbody>
-          ${customers
-            .map(
-              (customer) => `
+          ${
+            filtered.length === 0
+              ? `<tr><td colspan="6" class="empty-state">조건에 맞는 고객이 없습니다.</td></tr>`
+              : filtered
+                  .map(
+                    (customer) => `
                 <tr>
                   <td><strong>${escapeHtml(customer.name)}</strong><br /><span class="muted">${escapeHtml(customer.email || "-")}</span></td>
                   <td>${escapeHtml(customer.phone)}</td>
                   <td>${levelLabel(customer.level)} · ${interestLabel(customer.interest)}<br /><span class="muted">${escapeHtml(customer.preferredTime || "08:30")} 수신 희망</span></td>
-                  <td><span class="status-pill ${customer.status === "inactive" ? "inactive" : ""}">${customer.status === "active" ? "수신중" : "중지"}</span></td>
+                  <td><span class="status-pill ${customer.status === "active" ? "" : "inactive"}">${customerStatusLabel(customer.status)}</span></td>
                   <td>${formatDateTime(customer.createdAt)}</td>
                   <td>
                     <button class="btn secondary small" data-action="toggle-customer" data-id="${customer.id}">
@@ -1770,8 +1933,9 @@ function adminCustomers() {
                   </td>
                 </tr>
               `,
-            )
-            .join("")}
+                  )
+                  .join("")
+          }
         </tbody>
       </table>
     </div>
@@ -1979,6 +2143,23 @@ function bindForms() {
   if (unsubscribeForm) {
     unsubscribeForm.addEventListener("submit", handleUnsubscribe);
   }
+
+  const adminLoginForm = document.querySelector("#admin-login-form");
+  if (adminLoginForm) {
+    adminLoginForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const passphrase = new FormData(event.currentTarget).get("passphrase");
+      // MVP-only client-side check. NOT real auth (see ADMIN_PASSPHRASE).
+      if (passphrase === ADMIN_PASSPHRASE) {
+        setItem(STORAGE_KEYS.adminSession, "1");
+        showToast("관리자 인증되었습니다.");
+        render();
+      } else {
+        const error = document.querySelector("#admin-login-error");
+        if (error) error.hidden = false;
+      }
+    });
+  }
 }
 
 function handleSubscribe(event) {
@@ -2115,10 +2296,12 @@ document.addEventListener("click", async (event) => {
   }
 
   if (action === "delete-message") {
-    const messages = getMessages().filter((message) => message.id !== id);
-    writeStore(STORAGE_KEYS.messages, messages);
-    showToast("콘텐츠가 삭제되었습니다.");
-    render();
+    showConfirm("이 콘텐츠를 삭제할까요? 되돌릴 수 없습니다.", () => {
+      const messages = getMessages().filter((message) => message.id !== id);
+      writeStore(STORAGE_KEYS.messages, messages);
+      showToast("콘텐츠가 삭제되었습니다.");
+      render();
+    });
   }
 
   if (action === "copy-message") {
@@ -2128,9 +2311,11 @@ document.addEventListener("click", async (event) => {
   }
 
   if (action === "mark-sent") {
-    markSent(id);
-    showToast("발송 완료 기록을 남겼습니다.");
-    render();
+    showConfirm("발송 완료로 기록할까요? 활성 수신자 수가 발송 로그에 남습니다.", () => {
+      markSent(id);
+      showToast("발송 완료 기록을 남겼습니다.");
+      render();
+    });
   }
 
   if (action === "toggle-customer") {
@@ -2164,8 +2349,37 @@ document.addEventListener("click", async (event) => {
   }
 
   if (action === "export-customers") {
-    await copyText(customerCsv());
-    showToast("고객 CSV를 클립보드에 복사했습니다.");
+    showConfirm("고객 개인정보가 포함된 CSV를 클립보드로 내보낼까요?", async () => {
+      await copyText(customerCsv());
+      showToast("고객 CSV를 클립보드에 복사했습니다.");
+    });
+  }
+
+  if (action === "admin-logout") {
+    setItem(STORAGE_KEYS.adminSession, "");
+    showToast("로그아웃되었습니다.");
+    render();
+  }
+
+  if (action === "customer-search") {
+    const input = document.querySelector("#customer-search-input");
+    setCustomerQuery({ search: input ? input.value : "" });
+    render();
+  }
+
+  if (action === "customer-search-clear") {
+    setCustomerQuery({ search: "" });
+    render();
+  }
+
+  if (action === "customer-status-filter") {
+    setCustomerQuery({ status: target.dataset.value });
+    render();
+  }
+
+  if (action === "customer-sort") {
+    setCustomerQuery({ sort: target.dataset.value });
+    render();
   }
 
   if (action === "quiz") {

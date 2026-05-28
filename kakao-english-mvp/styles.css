@@ -1961,3 +1961,102 @@ body {
 .policy-doc a {
   color: inherit;
 }
+
+/* === Track C: admin login + modal + filters === */
+.admin-login-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+.admin-login {
+  max-width: 420px;
+  width: 100%;
+}
+.admin-login h1 {
+  margin: 8px 0 4px;
+}
+.admin-login-error {
+  color: var(--danger);
+  font-weight: 600;
+  margin: 4px 0;
+}
+.admin-login-note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.admin-logout {
+  margin-left: 8px;
+}
+
+/* Confirm modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 33, 43, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+.modal {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+}
+.modal-message {
+  margin: 0 0 20px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Customer search / filter / sort controls */
+.customer-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+.customer-search {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+.filter-group {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.filter-chip.active {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: #fff;
+}
+.customer-count {
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
