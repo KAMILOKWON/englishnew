@@ -1185,14 +1185,45 @@ function renderCheckout() {
                 ${paymentOption("naverpay", "N", "네이버페이", "네이버 앱 간편결제", selectedPay)}
                 ${paymentOption("kakaopay", "K", "카카오페이", "카카오톡 간편결제", selectedPay)}
               </div>
-              <label class="checkbox-row">
-                <input type="checkbox" name="kakaoChannelAdded" required />
-                <span>카카오톡 알림톡 수신을 위해 휴대폰 번호와 구매 정보를 발송 대행사에 제공하는 데 동의합니다.</span>
-              </label>
-              <label class="checkbox-row">
-                <input type="checkbox" name="consentMarketing" required />
-                <span>매일 영어 표현, 복습 링크, 구독 관리 안내를 카카오톡 알림톡으로 받는 데 동의합니다.</span>
-              </label>
+              <div class="consent-group">
+                <div class="consent-group-head">
+                  <h3>동의 항목</h3>
+                  <span class="consent-version">동의 문구 버전 ${escapeHtml(CONSENT_VERSION)}</span>
+                </div>
+                <p class="consent-note muted">필수 항목에 동의해야 결제를 진행할 수 있습니다.</p>
+
+                <label class="checkbox-row consent-item">
+                  <input type="checkbox" name="consentPrivacy" required />
+                  <span>
+                    <strong class="consent-required">[필수]</strong> 개인정보 수집·이용 동의
+                    <small class="consent-summary">이름, 휴대폰 번호, 이메일을 주문·결제 처리와 메시지 발송 목적으로 수집·이용합니다. 자세한 내용은 <a href="#privacy">개인정보 처리방침</a>에서 확인하세요.</small>
+                  </span>
+                </label>
+
+                <label class="checkbox-row consent-item">
+                  <input type="checkbox" name="consentTerms" required />
+                  <span>
+                    <strong class="consent-required">[필수]</strong> 이용약관 및 정기결제·환불 정책 동의
+                    <small class="consent-summary">서비스 이용 조건, 정기결제, 환불·해지 조건에 동의합니다. 전문은 <a href="#terms">이용약관</a>과 <a href="#refund">환불/해지 정책</a>에서 확인하세요.</small>
+                  </span>
+                </label>
+
+                <label class="checkbox-row consent-item">
+                  <input type="checkbox" name="consentPhone" required />
+                  <span>
+                    <strong class="consent-required">[필수]</strong> 알림톡 수신을 위한 휴대폰 번호 이용 동의
+                    <small class="consent-summary">입력한 휴대폰 번호를 카카오 알림톡 등 메시지 발송에 이용합니다. 자세한 내용은 <a href="#privacy">개인정보 처리방침</a>에서 확인하세요.</small>
+                  </span>
+                </label>
+
+                <label class="checkbox-row consent-item consent-optional">
+                  <input type="checkbox" name="consentMarketing" />
+                  <span>
+                    <strong>[선택]</strong> 마케팅·광고성 정보 수신 동의
+                    <small class="consent-summary">이벤트, 프로모션 등 광고성 정보를 카카오톡으로 받는 데 동의합니다. 동의하지 않아도 결제는 가능하며, 언제든지 수신 거부할 수 있습니다.</small>
+                  </span>
+                </label>
+              </div>
               <button class="btn primary checkout-submit" type="submit">${escapeHtml(product.price)} 결제하기</button>
             </section>
           </form>
@@ -2249,6 +2280,19 @@ function handleSubscribe(event) {
 function handleCheckout(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
+
+  // 필수 동의: 개인정보 수집·이용 + 이용약관/환불정책 + 휴대폰 번호 이용
+  const consentPrivacy = form.get("consentPrivacy") === "on";
+  const consentTerms = form.get("consentTerms") === "on";
+  const consentPhone = form.get("consentPhone") === "on";
+  const consentRequiredAgreed = consentPrivacy && consentTerms && consentPhone;
+
+  // native required를 우회한 제출에 대비해 JS에서도 필수 동의를 강제한다.
+  if (!consentRequiredAgreed) {
+    showToast("필수 동의 항목에 모두 동의해야 결제를 진행할 수 있습니다.");
+    return;
+  }
+
   const product = findProduct(form.get("productSlug"));
   const now = new Date().toISOString();
   const customerId = uid("cus");
@@ -2261,7 +2305,14 @@ function handleCheckout(event) {
     email: form.get("email").trim(),
     kakaoChannelAdded: form.get("kakaoChannelAdded") === "on",
     consentMarketing: form.get("consentMarketing") === "on",
+    consentRequiredAgreed,
+    consentVersion: CONSENT_VERSION,
     consentReceivedAt: now,
+    consentAt: now,
+    consentUserAgent: navigator.userAgent,
+    // 클라이언트에서는 IP를 확보할 수 없으므로 null로 둔다.
+    // 출시 시 서버가 결제 요청의 IP를 기록해야 한다.
+    consentIp: null,
     level: form.get("level"),
     interest: form.get("interest"),
     preferredTime: form.get("preferredTime"),
