@@ -31,7 +31,7 @@ async function main() {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.waitForSelector("text=국내 최다 카톡 영어 루틴");
+  await page.waitForSelector("text=매일 1분");
   assert(
     await page.locator(".store-hero").isVisible(),
     "Storefront hero is not visible",
@@ -41,8 +41,15 @@ async function main() {
     "Product cards are not visible",
   );
 
-  await page.click('a[href="#subscribe"]');
-  await page.waitForSelector("#subscribe-form");
+  await page.locator(".product-card .product-info").first().click();
+  await page.waitForSelector(".product-detail-hero");
+  assert(
+    await page.locator("text=네이버페이로 결제").isVisible(),
+    "Naver Pay CTA is not visible",
+  );
+
+  await page.click(".pay-cta.naver");
+  await page.waitForSelector("#checkout-form");
   await page.fill("#name", "테스트 고객");
   await page.fill("#phone", "010-1111-2222");
   await page.fill("#email", "test@example.com");
@@ -50,13 +57,24 @@ async function main() {
   await page.selectOption("#interest", "customer");
   await page.check('input[name="kakaoChannelAdded"]');
   await page.check('input[name="consentMarketing"]');
-  await page.click('#subscribe-form button[type="submit"]');
+  await page.click('#checkout-form button[type="submit"]');
   await page.waitForFunction(() => window.location.hash === "#thanks");
 
   const customerCount = await page.evaluate(
     () => JSON.parse(localStorage.getItem("daily-talk-customers")).length,
   );
   assert(customerCount === 2, `Expected 2 customers, got ${customerCount}`);
+  const orderCount = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("daily-talk-orders")).length,
+  );
+  assert(orderCount === 1, `Expected 1 order, got ${orderCount}`);
+  const subscriptionCount = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("daily-talk-subscriptions")).length,
+  );
+  assert(
+    subscriptionCount === 1,
+    `Expected 1 subscription, got ${subscriptionCount}`,
+  );
 
   await page.goto(`${fileUrl}#today?date=${new Date().toISOString().slice(0, 10)}&from=kakao`);
   await page.waitForSelector(".big-phrase");

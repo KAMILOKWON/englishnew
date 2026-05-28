@@ -3,6 +3,8 @@ const STORAGE_KEYS = {
   messages: "daily-talk-messages",
   deliveries: "daily-talk-deliveries",
   clicks: "daily-talk-clicks",
+  orders: "daily-talk-orders",
+  subscriptions: "daily-talk-subscriptions",
   adminTab: "daily-talk-admin-tab",
 };
 
@@ -150,6 +152,14 @@ function seedData() {
   if (!getItem(STORAGE_KEYS.clicks)) {
     writeStore(STORAGE_KEYS.clicks, []);
   }
+
+  if (!getItem(STORAGE_KEYS.orders)) {
+    writeStore(STORAGE_KEYS.orders, []);
+  }
+
+  if (!getItem(STORAGE_KEYS.subscriptions)) {
+    writeStore(STORAGE_KEYS.subscriptions, []);
+  }
 }
 
 function offsetDate(days) {
@@ -254,9 +264,15 @@ function statSummary() {
   const messages = getMessages();
   const deliveries = getDeliveries();
   const clicks = getClicks();
+  const orders = getOrders();
+  const subscriptions = getSubscriptions();
   return {
     activeCustomers: customers.filter((customer) => customer.status === "active")
       .length,
+    paidOrders: orders.filter((order) => order.status === "paid").length,
+    activeSubscriptions: subscriptions.filter(
+      (subscription) => subscription.status === "active",
+    ).length,
     messages: messages.length,
     deliveries: deliveries.length,
     clicks: clicks.length,
@@ -269,37 +285,61 @@ const productSections = [
     id: "recommended",
     products: [
       {
+        slug: "bbc-podcast",
         title: "매일 아침, 카톡으로 받는 BBC 팟캐스트 영어",
+        subtitle: "뉴스 오디오에서 바로 꺼낸 고급 표현",
+        description:
+          "BBC 토픽을 한국어 해설과 함께 압축해 매일 하나의 표현으로 받습니다.",
         original: "42,000원",
         discount: "30%",
         price: "29,400원",
+        priceValue: 29400,
+        duration: "90일",
         countdown: "종료까지 01:48:47 남음",
         theme: "red",
         tag: "BBC",
       },
       {
+        slug: "friends-english",
         title: "매일 아침, 카톡으로 받는 미드 프렌즈 영어",
+        subtitle: "상황별 대화 표현을 짧게 반복",
+        description:
+          "미드 속 자연스러운 표현을 카카오 알림톡으로 받고 웹 예문에서 복습합니다.",
         original: "42,000원",
         discount: "30%",
         price: "29,400원",
+        priceValue: 29400,
+        duration: "90일",
         countdown: "종료까지 01:48:47 남음",
         theme: "yellow",
         tag: "FRIENDS",
       },
       {
+        slug: "business-english",
         title: "출근길에 바로 쓰는 실전 비즈니스 영어",
+        subtitle: "회의, 메일, 고객 응대에 쓰는 업무 영어",
+        description:
+          "직장인이 아침에 보고 그날 바로 쓸 수 있는 짧은 업무 영어 루틴입니다.",
         original: "42,000원",
         discount: "30%",
         price: "29,400원",
+        priceValue: 29400,
+        duration: "90일",
         countdown: "종료까지 01:48:47 남음",
         theme: "black",
         tag: "WORK",
       },
       {
+        slug: "travel-english",
         title: "90일 완성 여행 영어 회화",
+        subtitle: "공항부터 호텔까지 필요한 여행 표현",
+        description:
+          "해외여행에서 막히기 쉬운 상황을 매일 하나씩 익히는 초급 회화 코스입니다.",
         original: "28,000원",
         discount: "30%",
         price: "19,600원",
+        priceValue: 19600,
+        duration: "90일",
         countdown: "종료까지 01:48:47 남음",
         theme: "blue",
         tag: "TRIP",
@@ -311,37 +351,61 @@ const productSections = [
     id: "english-products",
     products: [
       {
+        slug: "news-english",
         title: "글로벌 뉴스로 배우는 고급 실용 영어",
+        subtitle: "시사 문맥으로 익히는 고급 표현",
+        description:
+          "글로벌 뉴스 문장에서 표현, 뉘앙스, 활용 예문을 함께 정리합니다.",
         original: "42,000원",
         discount: "30%",
         price: "29,400원",
+        priceValue: 29400,
+        duration: "90일",
         countdown: "종료까지 01:48:47 남음",
         theme: "mint",
         tag: "NEWS",
       },
       {
+        slug: "basic-routine",
         title: "하루에 한 문장 초급 영어 루틴",
+        subtitle: "기초 회화의 최소 단위를 매일 반복",
+        description:
+          "초급자가 부담 없이 따라올 수 있도록 표현, 뜻, 발음 힌트를 짧게 보냅니다.",
         original: "28,000원",
         discount: "30%",
         price: "19,600원",
+        priceValue: 19600,
+        duration: "90일",
         countdown: "종료까지 01:48:47 남음",
         theme: "cream",
         tag: "BASIC",
       },
       {
+        slug: "customer-support",
         title: "고객 응대에 바로 쓰는 영어 표현",
+        subtitle: "CS 현장에서 쓰는 정중한 문장",
+        description:
+          "문의 응대, 사과, 안내, 후속 조치 표현을 매일 하나씩 받습니다.",
         original: "42,000원",
         discount: "30%",
         price: "29,400원",
+        priceValue: 29400,
+        duration: "90일",
         countdown: "종료까지 01:48:47 남음",
         theme: "green",
         tag: "CS",
       },
       {
+        slug: "toeic-speaking",
         title: "토익스피킹 아침 5문장 챌린지",
+        subtitle: "시험 답변에 바로 쓰는 템플릿 문장",
+        description:
+          "짧은 답변 템플릿과 확장 예문을 알림톡으로 받아 말하기 루틴을 만듭니다.",
         original: "42,000원",
         discount: "30%",
         price: "29,400원",
+        priceValue: 29400,
+        duration: "60일",
         countdown: "종료까지 01:48:47 남음",
         theme: "purple",
         tag: "TEST",
@@ -353,28 +417,46 @@ const productSections = [
     id: "set-products",
     products: [
       {
+        slug: "worker-set",
         title: "직장인 영어 루틴 3종 패키지",
+        subtitle: "비즈니스, 뉴스, 고객 응대 묶음",
+        description:
+          "출근길 영어 루틴을 하나로 묶어 업무 상황별 표현을 넓게 커버합니다.",
         original: "126,000원",
         discount: "50%",
         price: "63,000원",
+        priceValue: 63000,
+        duration: "180일",
         countdown: "종료까지 01:48:47 남음",
         theme: "black",
         tag: "SET",
       },
       {
+        slug: "travel-daily-set",
         title: "여행 영어와 일상 회화 완성 패키지",
+        subtitle: "가벼운 회화부터 여행 상황까지",
+        description:
+          "일상 회화와 여행 표현을 함께 받아 해외 일정 전 루틴을 완성합니다.",
         original: "84,000원",
         discount: "45%",
         price: "46,200원",
+        priceValue: 46200,
+        duration: "180일",
         countdown: "종료까지 01:48:47 남음",
         theme: "blue",
         tag: "PACK",
       },
       {
+        slug: "english-180",
         title: "초급부터 비즈니스까지 180일 영어",
+        subtitle: "기초에서 업무 영어까지 이어지는 장기 루틴",
+        description:
+          "초급 문장으로 시작해 실전 업무 표현까지 단계적으로 받는 장기 구독입니다.",
         original: "152,000원",
         discount: "50%",
         price: "76,000원",
+        priceValue: 76000,
+        duration: "180일",
         countdown: "종료까지 01:48:47 남음",
         theme: "red",
         tag: "180일",
@@ -383,23 +465,57 @@ const productSections = [
   },
 ];
 
+function allProducts() {
+  return productSections.flatMap((section) => section.products);
+}
+
+function findProduct(slug) {
+  return allProducts().find((product) => product.slug === slug) || allProducts()[0];
+}
+
+function getOrders() {
+  return readStore(STORAGE_KEYS.orders, []).sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
+}
+
+function getSubscriptions() {
+  return readStore(STORAGE_KEYS.subscriptions, []).sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
+}
+
+function formatPrice(value) {
+  return `${Number(value).toLocaleString("ko-KR")}원`;
+}
+
+function paymentLabel(method) {
+  return (
+    {
+      naverpay: "네이버페이",
+      kakaopay: "카카오페이",
+    }[method] || "네이버페이"
+  );
+}
+
 function shell(content) {
   const current = routeInfo().name;
   return `
-    <div class="app-shell">
+    <div class="app-shell route-${escapeHtml(current || "home")}">
       <header class="store-header">
         <div class="store-header-main">
           <a class="menu-button" href="#home" aria-label="메뉴">☰</a>
           <a class="store-logo" href="#home" aria-label="Daily Talk English 홈">DAILY TALK ENGLISH</a>
-          <a class="cart-button" href="#subscribe" aria-label="신청">♡</a>
+          <a class="cart-button" href="#checkout?slug=business-english" aria-label="결제">♡</a>
         </div>
         <nav class="store-nav" aria-label="상품 카테고리">
           ${navLink("home", "All")}
           <a href="#recommended">추천</a>
           <a href="#english-products">영어</a>
           <a href="#set-products">SET</a>
-          ${navLink("subscribe", "수신신청")}
+          ${navLink("checkout", "결제")}
           ${navLink("archive", "아카이브")}
+          ${navLink("mypage", "마이페이지")}
           ${navLink("admin", "관리자")}
         </nav>
       </header>
@@ -444,15 +560,15 @@ function renderHome() {
           </div>
         </div>
         <div class="store-hero-copy">
-          <h1>국내 최다 카톡 영어 루틴<br />데일리톡잉글리시와 시작하다</h1>
-          <p>매일 아침, 카톡으로 도착하는 영어 표현 · 해설 · 복습 퀴즈</p>
-          <a href="#subscribe">첫 메시지 받아보기</a>
+          <h1>매일 1분,<br />영어 표현이 카톡으로 도착합니다</h1>
+          <p>간편결제 후 매일 아침 알림톡으로 영어 표현과 복습 링크를 받습니다.</p>
+          <a href="#product?slug=business-english">인기 상품 보기</a>
         </div>
       </section>
 
       <section class="store-strip">
-        <div><strong>${stats.activeCustomers}</strong><span>수신 대기</span></div>
-        <div><strong>${stats.messages}</strong><span>예약 메시지</span></div>
+        <div><strong>${stats.paidOrders}</strong><span>결제 완료</span></div>
+        <div><strong>${stats.activeSubscriptions}</strong><span>알림톡 구독</span></div>
         <div><strong>${stats.clicks}</strong><span>복습 클릭</span></div>
       </section>
 
@@ -473,22 +589,289 @@ function renderProductSection(section) {
 }
 
 function renderProductCard(product) {
+  const detailHref = `#product?slug=${encodeURIComponent(product.slug)}`;
   return `
     <article class="product-card">
-      <a class="product-visual ${product.theme}" href="#subscribe" aria-label="${escapeHtml(product.title)}">
+      <a class="product-visual ${product.theme}" href="${detailHref}" aria-label="${escapeHtml(product.title)}">
         <span class="product-mini">매일 아침, 카톡으로 받는</span>
         <strong>${escapeHtml(product.title)}</strong>
         <span class="product-tag">${escapeHtml(product.tag)}</span>
-        <span class="talk-bubbles"><b>180일</b><b>365일</b></span>
+        <span class="talk-bubbles"><b>${escapeHtml(product.duration)}</b><b>알림톡</b></span>
       </a>
-      <a class="product-info" href="#subscribe">
+      <a class="product-info" href="${detailHref}">
         <h3>${escapeHtml(product.title)}</h3>
         <p class="original-price">${escapeHtml(product.original)}</p>
         <p class="sale-price"><span>${escapeHtml(product.discount)}</span> ${escapeHtml(product.price)}</p>
         <p class="time-left">◷ ${escapeHtml(product.countdown)}</p>
-        <p class="pay-mark">N pay</p>
+        <p class="pay-mark">N pay · kakao pay</p>
       </a>
     </article>
+  `;
+}
+
+function renderProductDetail() {
+  const { params } = routeInfo();
+  const product = findProduct(params.get("slug"));
+  const todayMessage = findMessageByDate(todayISO());
+
+  return shell(`
+    <main class="store-main">
+      <section class="product-detail-hero">
+        <div class="product-detail-visual ${product.theme}">
+          <span class="product-mini">매일 아침, 카톡으로 받는</span>
+          <strong>${escapeHtml(product.title)}</strong>
+          <span class="product-tag">${escapeHtml(product.tag)}</span>
+        </div>
+        <div class="product-detail-copy">
+          <p class="store-eyebrow">Daily Talk English</p>
+          <h1>${escapeHtml(product.title)}</h1>
+          <p class="lead">${escapeHtml(product.description)}</p>
+          <div class="product-price-panel">
+            <p class="original-price">${escapeHtml(product.original)}</p>
+            <p class="detail-price"><span>${escapeHtml(product.discount)}</span>${escapeHtml(product.price)}</p>
+            <p class="muted">${escapeHtml(product.duration)} 동안 매일 카카오 알림톡 발송</p>
+            <div class="checkout-actions">
+              <a class="pay-cta naver" href="#checkout?slug=${encodeURIComponent(product.slug)}&pay=naverpay">N 네이버페이로 결제</a>
+              <a class="pay-cta kakao" href="#checkout?slug=${encodeURIComponent(product.slug)}&pay=kakaopay">카카오페이로 결제</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-band">
+        <div class="detail-flow">
+          <article>
+            <span>01</span>
+            <strong>웹사이트 방문</strong>
+            <p>카테고리와 상품 카드에서 필요한 영어 루틴을 고릅니다.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>상세페이지 확인</strong>
+            <p>구성, 발송 방식, 샘플 표현을 보고 결제 수단을 선택합니다.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>간편결제 완료</strong>
+            <p>네이버페이 또는 카카오페이 결제 완료 후 구독이 활성화됩니다.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <strong>알림톡 수신</strong>
+            <p>매일 정해진 시간 카카오톡 알림톡으로 표현과 복습 링크를 받습니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="detail-content">
+        <article class="message-preview">
+          <p class="store-eyebrow">오늘 받아볼 메시지 예시</p>
+          <h2>${escapeHtml(todayMessage.englishPhrase)}</h2>
+          <p class="pronunciation">${escapeHtml(todayMessage.pronunciation)}</p>
+          <h3>${escapeHtml(todayMessage.koreanMeaning)}</h3>
+          <p>${escapeHtml(todayMessage.explanation)}</p>
+          <a class="btn secondary" href="#today?date=${encodeURIComponent(todayMessage.sendDate)}">웹 학습 상세 미리보기</a>
+        </article>
+        <aside class="curriculum-panel">
+          <h3>구성</h3>
+          <ul>
+            <li>매일 영어 표현 1개와 한국어 뜻</li>
+            <li>짧은 발음 힌트와 상황별 해설</li>
+            <li>웹 학습 상세 페이지 예문 2개</li>
+            <li>1문항 복습 퀴즈와 아카이브</li>
+            <li>마이페이지 구독 상태 확인</li>
+          </ul>
+        </aside>
+      </section>
+    </main>
+  `);
+}
+
+function renderCheckout() {
+  const { params } = routeInfo();
+  const product = findProduct(params.get("slug"));
+  const selectedPay = params.get("pay") || "naverpay";
+
+  return shell(`
+    <main class="page checkout-page">
+      <section class="container">
+        <div class="checkout-head">
+          <div>
+            <p class="store-eyebrow">Checkout</p>
+            <h1>결제 후 매일 카카오 알림톡으로 받아보세요.</h1>
+            <p class="lead">실제 출시 시 네이버페이/카카오페이 승인 결과와 카카오 알림톡 발송 동의를 서버에서 검증합니다.</p>
+          </div>
+          <a class="btn secondary" href="#product?slug=${encodeURIComponent(product.slug)}">상품 상세로 돌아가기</a>
+        </div>
+
+        <div class="checkout-layout">
+          <form class="checkout-form" id="checkout-form">
+            <input type="hidden" name="productSlug" value="${escapeHtml(product.slug)}" />
+            <section class="panel form">
+              <h2>구매자 정보</h2>
+              <div class="form-grid two">
+                <div class="field">
+                  <label for="name">이름</label>
+                  <input id="name" name="name" required placeholder="권오인" />
+                </div>
+                <div class="field">
+                  <label for="phone">휴대폰 번호</label>
+                  <input id="phone" name="phone" required placeholder="010-1234-5678" />
+                </div>
+              </div>
+              <div class="form-grid two">
+                <div class="field">
+                  <label for="email">이메일</label>
+                  <input id="email" name="email" type="email" placeholder="you@example.com" />
+                </div>
+                <div class="field">
+                  <label for="preferredTime">알림톡 수신 시간</label>
+                  <input id="preferredTime" name="preferredTime" type="time" value="08:30" />
+                </div>
+              </div>
+              <div class="form-grid two">
+                <div class="field">
+                  <label for="level">영어 레벨</label>
+                  <select id="level" name="level">
+                    <option value="beginner">초급</option>
+                    <option value="intermediate">중급</option>
+                    <option value="work">업무 영어 필요</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="interest">관심 분야</label>
+                  <select id="interest" name="interest">
+                    <option value="business">비즈니스</option>
+                    <option value="travel">여행</option>
+                    <option value="daily">일상 회화</option>
+                    <option value="customer">고객 응대</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel form">
+              <h2>결제 수단</h2>
+              <div class="payment-grid" role="radiogroup" aria-label="결제 수단">
+                ${paymentOption("naverpay", "N", "네이버페이", "네이버 앱 간편결제", selectedPay)}
+                ${paymentOption("kakaopay", "K", "카카오페이", "카카오톡 간편결제", selectedPay)}
+              </div>
+              <label class="checkbox-row">
+                <input type="checkbox" name="kakaoChannelAdded" required />
+                <span>카카오톡 알림톡 수신을 위해 휴대폰 번호와 구매 정보를 발송 대행사에 제공하는 데 동의합니다.</span>
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" name="consentMarketing" required />
+                <span>매일 영어 표현, 복습 링크, 구독 관리 안내를 카카오톡 알림톡으로 받는 데 동의합니다.</span>
+              </label>
+              <button class="btn primary checkout-submit" type="submit">${escapeHtml(product.price)} 결제하기</button>
+            </section>
+          </form>
+
+          <aside class="order-summary">
+            <h2>주문 요약</h2>
+            <div class="summary-product">
+              <div class="summary-thumb ${product.theme}">${escapeHtml(product.tag)}</div>
+              <div>
+                <strong>${escapeHtml(product.title)}</strong>
+                <p>${escapeHtml(product.duration)} · 매일 알림톡</p>
+              </div>
+            </div>
+            <dl>
+              <div><dt>상품금액</dt><dd>${escapeHtml(product.original)}</dd></div>
+              <div><dt>할인</dt><dd>${escapeHtml(product.discount)}</dd></div>
+              <div><dt>결제금액</dt><dd>${escapeHtml(product.price)}</dd></div>
+              <div><dt>결제수단</dt><dd>${paymentLabel(selectedPay)}</dd></div>
+            </dl>
+            <ol class="checkout-flow">
+              <li>결제 승인</li>
+              <li>구독 활성화</li>
+              <li>알림톡 발송 예약</li>
+              <li>매일 웹 학습 링크 수신</li>
+            </ol>
+          </aside>
+        </div>
+      </section>
+    </main>
+  `);
+}
+
+function paymentOption(value, mark, title, description, selectedPay) {
+  return `
+    <label class="payment-option ${value}" for="pay-${value}">
+      <input id="pay-${value}" type="radio" name="paymentMethod" value="${value}" ${selectedPay === value ? "checked" : ""} />
+      <span class="pay-mark-box">${mark}</span>
+      <span><strong>${title}</strong><small>${description}</small></span>
+    </label>
+  `;
+}
+
+function renderMypage() {
+  const subscriptions = getSubscriptions();
+  const orders = getOrders();
+  const latestSubscription = subscriptions[0];
+
+  return shell(`
+    <main class="page">
+      <section class="container">
+        <div class="checkout-head">
+          <div>
+            <p class="store-eyebrow">My Page</p>
+            <h1>구독과 알림톡 수신 상태를 확인합니다.</h1>
+            <p class="lead">정식 서비스에서는 로그인 후 결제 내역, 환불, 수신 시간 변경, 해지를 처리합니다.</p>
+          </div>
+          <a class="btn primary" href="#checkout?slug=business-english">새 구독 결제</a>
+        </div>
+        <div class="mypage-grid">
+          <section class="panel">
+            <h2>현재 구독</h2>
+            ${
+              latestSubscription
+                ? subscriptionCard(latestSubscription)
+                : `<p class="muted">아직 결제된 구독이 없습니다.</p><a class="btn secondary" href="#home">상품 둘러보기</a>`
+            }
+          </section>
+          <section class="panel">
+            <h2>주문 내역</h2>
+            ${
+              orders.length
+                ? `<div class="table-wrap"><table><thead><tr><th>주문일</th><th>상품</th><th>결제</th><th>상태</th></tr></thead><tbody>${orders
+                    .map(orderRow)
+                    .join("")}</tbody></table></div>`
+                : `<p class="muted">주문 내역이 없습니다.</p>`
+            }
+          </section>
+        </div>
+      </section>
+    </main>
+  `);
+}
+
+function subscriptionCard(subscription) {
+  const product = findProduct(subscription.productSlug);
+  const isActive = subscription.status === "active";
+  return `
+    <div class="subscription-card">
+      <span class="status-pill ${isActive ? "" : "paused"}">${isActive ? "알림톡 수신중" : "해지 요청"}</span>
+      <h3>${escapeHtml(product.title)}</h3>
+      <p class="muted">${formatDateTime(subscription.createdAt)}부터 ${escapeHtml(subscription.preferredTime || "08:30")}에 발송</p>
+      <div class="button-row">
+        <a class="btn secondary" href="#today?date=${todayISO()}&from=kakao">오늘 링크 열기</a>
+        <button class="btn danger" data-action="toggle-subscription" data-id="${subscription.id}">${isActive ? "해지 예약" : "해지 취소"}</button>
+      </div>
+    </div>
+  `;
+}
+
+function orderRow(order) {
+  const product = findProduct(order.productSlug);
+  return `
+    <tr>
+      <td>${formatDateTime(order.createdAt)}</td>
+      <td>${escapeHtml(product.title)}</td>
+      <td>${paymentLabel(order.paymentMethod)}<br /><span class="muted">${formatPrice(order.amount)}</span></td>
+      <td><span class="status-pill">${order.status === "paid" ? "결제완료" : order.status}</span></td>
+    </tr>
   `;
 }
 
@@ -631,16 +1014,22 @@ function renderSubscribe() {
 
 function renderThanks() {
   const message = findMessageByDate(todayISO());
+  const latestOrder = getOrders()[0];
+  const latestProduct = latestOrder ? findProduct(latestOrder.productSlug) : null;
   return shell(`
     <main class="page">
-      <section class="container hero-grid">
+      <section class="container purchase-complete">
         <div>
-          <div class="eyebrow"><span class="pulse-dot"></span>신청 완료</div>
-          <h1>이제 매일 한 문장씩 쌓아가면 됩니다.</h1>
-          <p class="lead">실제 서비스에서는 이 화면에 카카오톡 채널 추가 버튼과 수신 거부 안내를 연결합니다.</p>
+          <div class="eyebrow"><span class="pulse-dot"></span>결제 완료</div>
+          <h1>구독이 활성화되었습니다.</h1>
+          <p class="lead">${
+            latestProduct
+              ? `${escapeHtml(latestProduct.title)} 결제가 완료되었습니다.`
+              : "결제가 완료되었습니다."
+          } 내일부터 설정한 시간에 카카오톡 알림톡으로 영어 표현을 보내드립니다.</p>
           <div class="button-row">
-            <a class="btn primary" href="#today?date=${encodeURIComponent(message.sendDate)}">첫 표현 보기</a>
-            <a class="btn secondary" href="#archive">지난 표현 둘러보기</a>
+            <a class="btn primary" href="#today?date=${encodeURIComponent(message.sendDate)}&from=kakao">첫 알림톡 링크 미리보기</a>
+            <a class="btn secondary" href="#mypage">마이페이지 보기</a>
           </div>
         </div>
         <div class="phone-wrap">${phonePreview(message)}</div>
@@ -681,7 +1070,7 @@ function renderToday() {
             <li>${escapeHtml(message.exampleSentence2)}</li>
           </ul>
           <div class="button-row section">
-            <a class="btn primary" href="#subscribe">매일 받아보기</a>
+            <a class="btn primary" href="#product?slug=business-english">매일 받아보기</a>
             <a class="btn secondary" href="#archive">지난 표현 보기</a>
           </div>
         </article>
@@ -1113,10 +1502,13 @@ function render() {
     const { name } = routeInfo();
     const views = {
       home: renderHome,
+      product: renderProductDetail,
+      checkout: renderCheckout,
       subscribe: renderSubscribe,
       thanks: renderThanks,
       today: renderToday,
       archive: renderArchive,
+      mypage: renderMypage,
       admin: renderAdmin,
     };
     app.innerHTML = (views[name] || renderHome)();
@@ -1140,6 +1532,11 @@ function bindForms() {
   const subscribeForm = document.querySelector("#subscribe-form");
   if (subscribeForm) {
     subscribeForm.addEventListener("submit", handleSubscribe);
+  }
+
+  const checkoutForm = document.querySelector("#checkout-form");
+  if (checkoutForm) {
+    checkoutForm.addEventListener("submit", handleCheckout);
   }
 
   const messageForm = document.querySelector("#message-form");
@@ -1168,6 +1565,59 @@ function handleSubscribe(event) {
   });
   writeStore(STORAGE_KEYS.customers, customers);
   showToast("수신 신청이 저장되었습니다.");
+  navigate("thanks");
+}
+
+function handleCheckout(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const product = findProduct(form.get("productSlug"));
+  const now = new Date().toISOString();
+  const customerId = uid("cus");
+  const orderId = uid("ord");
+  const subscriptionId = uid("sub");
+  const customer = {
+    id: customerId,
+    name: form.get("name").trim(),
+    phone: form.get("phone").trim(),
+    email: form.get("email").trim(),
+    kakaoChannelAdded: form.get("kakaoChannelAdded") === "on",
+    consentMarketing: form.get("consentMarketing") === "on",
+    consentReceivedAt: now,
+    level: form.get("level"),
+    interest: form.get("interest"),
+    preferredTime: form.get("preferredTime"),
+    status: "active",
+    createdAt: now,
+  };
+  const order = {
+    id: orderId,
+    customerId,
+    productSlug: product.slug,
+    amount: product.priceValue,
+    currency: "KRW",
+    paymentMethod: form.get("paymentMethod"),
+    providerPaymentId: uid(form.get("paymentMethod") || "pay"),
+    status: "paid",
+    paidAt: now,
+    createdAt: now,
+  };
+  const subscription = {
+    id: subscriptionId,
+    customerId,
+    orderId,
+    productSlug: product.slug,
+    preferredTime: form.get("preferredTime"),
+    channel: "kakao-alimtalk",
+    status: "active",
+    startedAt: now,
+    createdAt: now,
+  };
+
+  writeStore(STORAGE_KEYS.customers, [customer, ...getCustomers()]);
+  writeStore(STORAGE_KEYS.orders, [order, ...getOrders()]);
+  writeStore(STORAGE_KEYS.subscriptions, [subscription, ...getSubscriptions()]);
+  showToast(`${paymentLabel(order.paymentMethod)} 결제가 완료되었습니다.`);
   navigate("thanks");
 }
 
@@ -1257,6 +1707,23 @@ document.addEventListener("click", async (event) => {
         : customer,
     );
     writeStore(STORAGE_KEYS.customers, customers);
+    render();
+  }
+
+  if (action === "toggle-subscription") {
+    const subscriptions = getSubscriptions().map((subscription) =>
+      subscription.id === id
+        ? {
+            ...subscription,
+            status:
+              subscription.status === "active" ? "cancel_requested" : "active",
+            cancelRequestedAt:
+              subscription.status === "active" ? new Date().toISOString() : null,
+          }
+        : subscription,
+    );
+    writeStore(STORAGE_KEYS.subscriptions, subscriptions);
+    showToast("구독 해지 요청 상태를 변경했습니다.");
     render();
   }
 

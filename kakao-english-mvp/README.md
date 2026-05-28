@@ -1,6 +1,6 @@
-# Daily Talk English MVP
+# Daily Talk English Commerce MVP
 
-고객에게 매일 카카오톡으로 짧은 영어 메시지를 보내는 서비스의 1차 MVP입니다.
+웹사이트에서 영어 루틴 상품을 판매하고, 결제 완료 고객에게 매일 카카오톡 알림톡으로 짧은 영어 표현을 보내는 커머스형 MVP입니다.
 
 ## 실행
 
@@ -20,9 +20,12 @@ NODE_PATH=/Users/kwon-oin/.cache/codex-runtimes/codex-primary-runtime/dependenci
 
 ## 구현된 범위
 
-- 랜딩/서비스 소개 화면
-- 수신 신청 폼
-- 고객 수신 동의 저장
+- 1day1message 참고 구조의 웹 커머스 홈
+- 상품 카드와 상품 상세 페이지
+- 네이버페이/카카오페이 선택형 결제 화면
+- 결제 완료 후 주문/구독/고객 정보 로컬 저장
+- 카카오 알림톡 수신 동의 저장
+- 결제 완료 및 마이페이지 화면
 - 오늘의 영어 표현 페이지
 - 표현 아카이브
 - 관리자 대시보드
@@ -36,8 +39,8 @@ NODE_PATH=/Users/kwon-oin/.cache/codex-runtimes/codex-primary-runtime/dependenci
 
 - 카카오 비즈메시지 API 실연동
 - 자동 대량 발송
-- 실제 결제
+- 네이버페이/카카오페이 실제 승인 및 웹훅 검증
 - 서버 DB
 - 관리자 계정 인증
 
-초기 검증은 로컬 저장소 기반으로 동작합니다. 고객 반응이 검증되면 Supabase DB, 관리자 인증, Toss Payments, 공식 딜러사 기반 메시지 API 연동 순서로 확장하는 것이 좋습니다.
+초기 검증은 로컬 저장소 기반으로 동작합니다. 고객 반응이 검증되면 서버 DB, 관리자 인증, 네이버페이/카카오페이 승인 API, 공식 딜러사 기반 카카오 알림톡 API 연동 순서로 확장하는 것이 좋습니다.
