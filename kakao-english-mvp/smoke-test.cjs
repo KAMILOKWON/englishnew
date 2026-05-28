@@ -55,7 +55,10 @@ async function main() {
   await page.fill("#email", "test@example.com");
   await page.selectOption("#level", "work");
   await page.selectOption("#interest", "customer");
-  await page.check('input[name="kakaoChannelAdded"]');
+  // 필수 동의(개인정보/약관/휴대폰) 없이는 결제가 진행되지 않는다.
+  await page.check('input[name="consentPrivacy"]');
+  await page.check('input[name="consentTerms"]');
+  await page.check('input[name="consentPhone"]');
   await page.check('input[name="consentMarketing"]');
   await page.click('#checkout-form button[type="submit"]');
   await page.waitForFunction(() => window.location.hash === "#thanks");
@@ -84,8 +87,15 @@ async function main() {
   assert(clickCount === 1, `Expected 1 click record, got ${clickCount}`);
 
   await page.goto(`${fileUrl}#admin`);
+  // 관리자 화면은 클라이언트 게이트로 보호된다. 먼저 로그인한다.
+  await page.waitForSelector("#admin-login-form");
+  await page.fill("#admin-passphrase", "admin1234");
+  await page.click('#admin-login-form button[type="submit"]');
   await page.waitForSelector("text=오늘 발송할 메시지");
+  // 발송 완료 기록은 확인 모달을 거친다.
   await page.click('[data-action="mark-sent"]');
+  await page.waitForSelector('#confirm-overlay [data-action="confirm-ok"]');
+  await page.click('#confirm-overlay [data-action="confirm-ok"]');
   const deliveryCount = await page.evaluate(
     () => JSON.parse(localStorage.getItem("daily-talk-deliveries")).length,
   );
@@ -93,6 +103,9 @@ async function main() {
 
   await page.click('[data-action="admin-tab"][data-tab="messages"]');
   await page.waitForSelector("#message-form");
+  const messagesBefore = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("daily-talk-messages")).length,
+  );
   await page.fill("#englishPhrase", "Could you clarify that?");
   await page.fill("#koreanMeaning", "그 부분을 명확히 설명해 주실 수 있나요?");
   await page.fill("#pronunciation", "쿠쥬 클래러파이 댓");
@@ -106,7 +119,10 @@ async function main() {
   const messageCount = await page.evaluate(
     () => JSON.parse(localStorage.getItem("daily-talk-messages")).length,
   );
-  assert(messageCount === 3, `Expected 3 messages, got ${messageCount}`);
+  assert(
+    messageCount === messagesBefore + 1,
+    `Expected ${messagesBefore + 1} messages, got ${messageCount}`,
+  );
 
   assert(errors.length === 0, `Browser errors: ${errors.join("; ")}`);
   await browser.close();
