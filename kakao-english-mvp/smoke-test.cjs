@@ -37,6 +37,10 @@ async function main() {
     "Storefront hero is not visible",
   );
   assert(
+    await page.locator(".launch-banner").isVisible(),
+    "Pilot launch banner is not visible",
+  );
+  assert(
     await page.locator(".product-card").first().isVisible(),
     "Product cards are not visible",
   );
@@ -44,33 +48,35 @@ async function main() {
   await page.locator(".product-card .product-info").first().click();
   await page.waitForSelector(".product-detail-hero");
   assert(
-    await page.locator("text=네이버페이로 결제").isVisible(),
-    "Naver Pay CTA is not visible",
+    await page.locator("text=7일 무료 체험").first().isVisible(),
+    "Pilot trial CTA is not visible",
   );
 
-  await page.click(".pay-cta.naver");
+  await page.click(".pay-cta.pilot");
   await page.waitForSelector("#checkout-form");
   await page.fill("#name", "테스트 고객");
   await page.fill("#phone", "010-1111-2222");
   await page.fill("#email", "test@example.com");
   await page.selectOption("#level", "work");
   await page.selectOption("#interest", "customer");
-  // 필수 동의(개인정보/약관/휴대폰) 없이는 결제가 진행되지 않는다.
   await page.check('input[name="consentPrivacy"]');
   await page.check('input[name="consentTerms"]');
   await page.check('input[name="consentPhone"]');
-  await page.check('input[name="consentMarketing"]');
   await page.click('#checkout-form button[type="submit"]');
   await page.waitForFunction(() => window.location.hash === "#thanks");
 
   const customerCount = await page.evaluate(
     () => JSON.parse(localStorage.getItem("daily-talk-customers")).length,
   );
-  assert(customerCount === 2, `Expected 2 customers, got ${customerCount}`);
+  assert(customerCount === 1, `Expected 1 customer, got ${customerCount}`);
   const orderCount = await page.evaluate(
     () => JSON.parse(localStorage.getItem("daily-talk-orders")).length,
   );
   assert(orderCount === 1, `Expected 1 order, got ${orderCount}`);
+  const orderStatus = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("daily-talk-orders"))[0].status,
+  );
+  assert(orderStatus === "trial", `Expected trial order, got ${orderStatus}`);
   const subscriptionCount = await page.evaluate(
     () => JSON.parse(localStorage.getItem("daily-talk-subscriptions")).length,
   );
@@ -87,12 +93,10 @@ async function main() {
   assert(clickCount === 1, `Expected 1 click record, got ${clickCount}`);
 
   await page.goto(`${fileUrl}#admin`);
-  // 관리자 화면은 클라이언트 게이트로 보호된다. 먼저 로그인한다.
   await page.waitForSelector("#admin-login-form");
   await page.fill("#admin-passphrase", "admin1234");
   await page.click('#admin-login-form button[type="submit"]');
   await page.waitForSelector("text=오늘 발송할 메시지");
-  // 발송 완료 기록은 확인 모달을 거친다.
   await page.click('[data-action="mark-sent"]');
   await page.waitForSelector('#confirm-overlay [data-action="confirm-ok"]');
   await page.click('#confirm-overlay [data-action="confirm-ok"]');

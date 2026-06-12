@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# TODO(launch): replace https://example.com with the real production domain before launch
-Sitemap: https://example.com/sitemap.xml
+Sitemap: https://kamilokwon.github.io/englishnew/sitemap.xml

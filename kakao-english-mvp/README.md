@@ -1,55 +1,59 @@
-# Daily Talk English Commerce MVP
+# 데일리톡잉글리시 (Daily Talk English) MVP
 
-웹사이트에서 영어 루틴 상품을 판매하고, 결제 완료 고객에게 매일 카카오톡 알림톡으로 짧은 영어 표현을 보내는 커머스형 MVP입니다.
+매일 아침 카카오 알림톡으로 영어 표현을 받는 웹 서비스 MVP입니다.
+
+**공개 URL:** https://kamilokwon.github.io/englishnew/
 
 ## 실행
 
-브라우저에서 `index.html`을 열면 바로 실행됩니다.
+**실서비스 모드(알림톡 발송 포함)** — 쏘다(ssodaa) API 연동 백엔드와 함께 실행:
 
-```text
-kakao-english-mvp/index.html
+```bash
+node server/index.js   # 저장소 루트에서. 설정은 server/.env (server/README.md 참고)
+# http://localhost:8765/ — 신청/구매 시 서버 등록 + 매일 정해진 시간에 알림톡 발송
 ```
+
+**데모 모드(정적, 발송 없음)**:
+
+```bash
+cd kakao-english-mvp
+python3 -m http.server 8765
+# http://127.0.0.1:8765/
+```
+
+## 출시 전 설정 (`site-config.js`)
+
+| 항목 | 설명 |
+|------|------|
+| `kakaoChannelUrl` | 카카오톡 채널 **채널 추가** 링크 (필수) |
+| `supportEmail` / `supportPhone` | 고객 문의·정책 문서 표시 |
+| `launchMode` | `pilot` = 7일 무료 체험(결제 없음) · `commerce` = 결제 UI 데모 |
+| `siteUrl` | 운영 도메인 (SEO·발송 링크 기준) |
 
 ## 검증
 
-Codex 번들 런타임에 Playwright와 Chrome 실행 권한이 있는 환경에서는 아래 명령으로 핵심 흐름을 검사할 수 있습니다.
-
 ```bash
-NODE_PATH=/Users/kwon-oin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules /Users/kwon-oin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node kakao-english-mvp/smoke-test.cjs
+cd kakao-english-mvp
+npm install
+npx playwright install chromium
+npm run smoke
 ```
 
-## 구현된 범위
+## 구현 범위
 
-- 1day1message 참고 구조의 웹 커머스 홈
-- 상품 카드와 상품 상세 페이지
-- 네이버페이/카카오페이 선택형 결제 화면
-- 결제 완료 후 주문/구독/고객 정보 로컬 저장
-- 카카오 알림톡 수신 동의 저장
-- 결제 완료 및 마이페이지 화면
-- 오늘의 영어 표현 페이지
-- 표현 아카이브
-- 관리자 대시보드
-- 영어 메시지 작성/수정/삭제
-- 카카오 채널 관리자센터에 붙여넣을 발송 문구 생성
-- 수동 발송 완료 기록 (확인 모달 포함)
-- 카카오 링크 유입 클릭 로그
-- 고객 CSV 복사
-- 개인정보 처리방침 / 이용약관 / 환불·해지 정책 페이지 (MVP 초안)
-- 신청·결제 시 필수/선택 동의 분리, 동의 버전·시각·UA 기록
-- 카카오 알림톡 수신거부 페이지 (고객 상태 `unsubscribed` 처리)
-- 관리자 화면 클라이언트 게이트 (MVP용, 실제 보안 아님)
-- 관리자 고객 검색·상태 필터·정렬
-- 30일치 영어 표현 시드 콘텐츠
-- SEO 메타/OG 태그, `robots.txt`, `sitemap.xml`, `404.html`
+- 커머스형 랜딩·상품·체험 신청(파일럿) / 결제 UI(커머스 모드)
+- 오늘의 표현·아카이브·마이페이지
+- 관리자: 메시지 CRUD, 발송 문구 복사, 고객 CSV, 수신거부
+- 개인정보·약관·환불·수신거부 페이지
+- SEO(`robots.txt`, `sitemap.xml`, OG), GitHub Pages 배포
 
-## 아직 제외한 범위
+## 백엔드 연동 (`server/`)
 
-- 카카오 비즈메시지 API 실연동
-- 자동 대량 발송
-- 네이버페이/카카오페이 실제 승인 및 웹훅 검증
-- 서버 DB
-- 관리자 계정 **서버 인증** (현재는 클라이언트 게이트 `admin1234`, 출시 전 서버 세션/토큰으로 교체 필요)
-- 동의 시 IP 기록 (클라이언트 불가, 서버에서 기록 필요)
-- 정책 문서 법무 검토, 실제 카카오 채널 추가 URL, 운영 도메인/캐노니컬 URL (코드 내 `TODO(launch)` 표시)
+쏘다(ssodaa) 알림톡 API 기반 백엔드가 `server/`에 있습니다. 구매/신청 등록, 동의 IP 기록, 환영 알림톡, **매일 희망 시각 자동 발송**, 수신거부, 관리자 API를 처리합니다. 자세한 설정은 [server/README.md](../server/README.md) 참고.
 
-초기 검증은 로컬 저장소 기반으로 동작합니다. 고객 반응이 검증되면 서버 DB, 관리자 인증, 네이버페이/카카오페이 승인 API, 공식 딜러사 기반 카카오 알림톡 API 연동 순서로 확장하는 것이 좋습니다.
+## 아직 서버가 필요한 항목
+
+- PG(네이버페이/카카오페이) 실결제 연동 (현재는 데모 결제)
+- 웹훅 수신·오류 추적(Sentry 등)
+
+파일럿은 `localStorage` + 수동 발송으로도 운영 가능합니다.

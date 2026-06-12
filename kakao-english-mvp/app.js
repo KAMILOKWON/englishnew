@@ -10,6 +10,104 @@ const STORAGE_KEYS = {
   adminCustomerQuery: "daily-talk-admin-customer-query",
 };
 
+const SCROLL_SECTIONS = new Set([
+  "recommended",
+  "english-products",
+  "set-products",
+]);
+
+const DEFAULT_SITE_CONFIG = {
+  siteUrl: "https://kamilokwon.github.io/englishnew/",
+  brandNameKo: "데일리톡잉글리시",
+  brandNameEn: "Daily Talk English",
+  kakaoChannelUrl: "",
+  supportEmail: "hello@dailytalkenglish.kr",
+  supportPhone: "",
+  launchMode: "pilot",
+  pilotTrialDays: 7,
+  showAdminNav: false,
+  seedSampleData: false,
+  defaultPreferredTime: "08:30",
+  adminPassphrase: "admin1234",
+  // 백엔드 API 주소. 비어 있으면 데모(localStorage) 모드.
+  // server/index.js 로 서빙하면 "/api"가 자동 주입된다.
+  apiBaseUrl: "",
+};
+
+function getSiteConfig() {
+  return { ...DEFAULT_SITE_CONFIG, ...(window.SITE_CONFIG || {}) };
+}
+
+function apiBaseUrl() {
+  return (getSiteConfig().apiBaseUrl || "").trim().replace(/\/+$/, "");
+}
+
+function apiEnabled() {
+  return Boolean(apiBaseUrl());
+}
+
+async function apiPost(path, payload) {
+  const response = await fetch(`${apiBaseUrl()}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.ok === false) {
+    throw new Error(data.error || `요청 실패 (HTTP ${response.status})`);
+  }
+  return data;
+}
+
+function isPilotLaunch() {
+  return getSiteConfig().launchMode === "pilot";
+}
+
+function brandNameKo() {
+  return getSiteConfig().brandNameKo;
+}
+
+function brandNameEn() {
+  return getSiteConfig().brandNameEn;
+}
+
+function pilotTrialLabel() {
+  const days = getSiteConfig().pilotTrialDays;
+  return `${days}일 무료 체험`;
+}
+
+function supportContactHtml() {
+  const { supportEmail, supportPhone } = getSiteConfig();
+  const parts = [];
+  if (supportEmail) {
+    parts.push(
+      `<a href="mailto:${escapeHtml(supportEmail)}">${escapeHtml(supportEmail)}</a>`,
+    );
+  }
+  if (supportPhone) {
+    parts.push(escapeHtml(supportPhone));
+  }
+  return parts.length ? parts.join(" · ") : "운영 준비 중";
+}
+
+function kakaoChannelButton(className = "btn primary") {
+  const url = getSiteConfig().kakaoChannelUrl?.trim();
+  if (url) {
+    return `<a class="${className}" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">카카오톡 채널 추가하기</a>`;
+  }
+  return `<p class="muted channel-setup-hint">카카오 채널 추가 URL이 아직 연결되지 않았습니다. <code>site-config.js</code>의 <code>kakaoChannelUrl</code>에 채널 추가 링크를 넣어 주세요.</p>`;
+}
+
+function launchBanner() {
+  if (!isPilotLaunch()) return "";
+  return `
+    <div class="launch-banner" role="status">
+      <strong>${escapeHtml(pilotTrialLabel())} 오픈</strong>
+      <span>결제 없이 신청하고, 매일 아침 카카오 알림톡으로 영어 표현을 받아 보세요.</span>
+    </div>
+  `;
+}
+
 const app = document.querySelector("#app");
 const toast = document.querySelector("#toast");
 const memoryStore = new Map();
@@ -549,7 +647,7 @@ function seedData() {
     );
   }
 
-  if (customers.length === 0) {
+  if (customers.length === 0 && getSiteConfig().seedSampleData) {
     writeStore(STORAGE_KEYS.customers, [
       {
         id: uid("cus"),
@@ -561,7 +659,7 @@ function seedData() {
         consentReceivedAt: new Date().toISOString(),
         level: "beginner",
         interest: "business",
-        preferredTime: "08:30",
+        preferredTime: getSiteConfig().defaultPreferredTime,
         status: "active",
         createdAt: new Date().toISOString(),
       },
@@ -665,6 +763,14 @@ function publicDailyUrl(message) {
 }
 
 function buildKakaoCopy(message) {
+  const { supportPhone, supportEmail } = getSiteConfig();
+  const contact = [supportPhone, supportEmail].filter(Boolean).join(" / ") || "고객센터";
+  const footer = [
+    "",
+    "무료 수신 거부: 알림톡 하단 링크 또는 웹 수신거부",
+    `${getSiteConfig().siteUrl}#unsubscribe`,
+    `문의: ${contact}`,
+  ].join("\n");
   return `${message.title}
 
 ${message.englishPhrase}
@@ -673,7 +779,7 @@ ${message.koreanMeaning}
 ${message.explanation}
 
 ${message.ctaLabel || "예문과 퀴즈 보기"}
-${publicDailyUrl(message)}`;
+${publicDailyUrl(message)}${footer}`;
 }
 
 function showToast(message) {
@@ -692,7 +798,9 @@ function statSummary() {
   return {
     activeCustomers: customers.filter((customer) => customer.status === "active")
       .length,
-    paidOrders: orders.filter((order) => order.status === "paid").length,
+    paidOrders: orders.filter((order) =>
+      ["paid", "trial"].includes(order.status),
+    ).length,
     activeSubscriptions: subscriptions.filter(
       (subscription) => subscription.status === "active",
     ).length,
@@ -718,7 +826,7 @@ const productSections = [
         price: "29,400원",
         priceValue: 29400,
         duration: "90일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "red",
         tag: "NEWS",
       },
@@ -733,7 +841,7 @@ const productSections = [
         price: "29,400원",
         priceValue: 29400,
         duration: "90일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "yellow",
         tag: "SITCOM",
       },
@@ -748,7 +856,7 @@ const productSections = [
         price: "29,400원",
         priceValue: 29400,
         duration: "90일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "black",
         tag: "WORK",
       },
@@ -763,7 +871,7 @@ const productSections = [
         price: "19,600원",
         priceValue: 19600,
         duration: "90일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "blue",
         tag: "TRIP",
       },
@@ -784,7 +892,7 @@ const productSections = [
         price: "29,400원",
         priceValue: 29400,
         duration: "90일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "mint",
         tag: "NEWS",
       },
@@ -799,7 +907,7 @@ const productSections = [
         price: "19,600원",
         priceValue: 19600,
         duration: "90일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "cream",
         tag: "BASIC",
       },
@@ -814,7 +922,7 @@ const productSections = [
         price: "29,400원",
         priceValue: 29400,
         duration: "90일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "green",
         tag: "CS",
       },
@@ -829,7 +937,7 @@ const productSections = [
         price: "29,400원",
         priceValue: 29400,
         duration: "60일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "purple",
         tag: "TEST",
       },
@@ -850,7 +958,7 @@ const productSections = [
         price: "63,000원",
         priceValue: 63000,
         duration: "180일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "black",
         tag: "SET",
       },
@@ -865,7 +973,7 @@ const productSections = [
         price: "46,200원",
         priceValue: 46200,
         duration: "180일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "blue",
         tag: "PACK",
       },
@@ -880,7 +988,7 @@ const productSections = [
         price: "76,000원",
         priceValue: 76000,
         duration: "180일",
-        countdown: "종료까지 01:48:47 남음",
+        countdown: "",
         theme: "red",
         tag: "180일",
       },
@@ -917,42 +1025,56 @@ function paymentLabel(method) {
     {
       naverpay: "네이버페이",
       kakaopay: "카카오페이",
+      trial: "무료 체험",
     }[method] || "네이버페이"
+  );
+}
+
+function orderStatusLabel(status) {
+  return (
+    {
+      paid: "결제완료",
+      trial: "무료체험",
+    }[status] || status
   );
 }
 
 function shell(content) {
   const current = routeInfo().name;
+  const trialCta = `#checkout?slug=business-english`;
   return `
     <div class="app-shell route-${escapeHtml(current || "home")}">
+      ${launchBanner()}
       <header class="store-header">
         <div class="store-header-main">
           <a class="menu-button" href="#home" aria-label="메뉴">☰</a>
-          <a class="store-logo" href="#home" aria-label="Daily Talk English 홈">DAILY TALK ENGLISH</a>
-          <a class="cart-button" href="#checkout?slug=business-english" aria-label="결제">♡</a>
+          <a class="store-logo" href="#home" aria-label="${escapeHtml(brandNameEn())} 홈">${escapeHtml(brandNameEn().toUpperCase())}</a>
+          <a class="cart-button" href="${trialCta}" aria-label="${isPilotLaunch() ? "무료 체험 신청" : "결제"}">${isPilotLaunch() ? "체험" : "♡"}</a>
         </div>
         <nav class="store-nav" aria-label="상품 카테고리">
-          ${navLink("home", "All")}
+          ${navLink("home", "홈")}
           <a href="#recommended">추천</a>
           <a href="#english-products">영어</a>
           <a href="#set-products">SET</a>
-          ${navLink("checkout", "결제")}
+          ${navLink("today", "오늘의 표현")}
           ${navLink("archive", "아카이브")}
           ${navLink("mypage", "마이페이지")}
-          ${navLink("admin", "관리자")}
+          ${getSiteConfig().showAdminNav ? navLink("admin", "관리자") : ""}
         </nav>
       </header>
       ${content}
-      <a class="cs-button" href="#subscribe" aria-label="고객 문의">CS</a>
+      <a class="cs-button" href="#subscribe" aria-label="무료 체험 신청">체험</a>
       <footer class="footer">
         <div class="container">
-          <strong>Daily Talk English</strong>
-          <span class="muted"> · 매일 아침, 카톡으로 받는 영어 루틴</span>
+          <strong>${escapeHtml(brandNameKo())}</strong>
+          <span class="muted"> · ${escapeHtml(brandNameEn())} · 매일 아침, 카톡으로 받는 영어 루틴</span>
+          <p class="footer-contact muted">문의: ${supportContactHtml()}</p>
           <nav class="footer-links" aria-label="정책 및 고객 안내">
             <a href="#privacy">개인정보처리방침</a>
             <a href="#terms">이용약관</a>
             <a href="#refund">환불/해지 정책</a>
             <a href="#unsubscribe">알림톡 수신거부</a>
+            <a href="#admin" class="footer-admin-link">운영</a>
           </nav>
         </div>
       </footer>
@@ -990,13 +1112,20 @@ function renderHome() {
         </div>
         <div class="store-hero-copy">
           <h1>매일 1분,<br />영어 표현이 카톡으로 도착합니다</h1>
-          <p>간편결제 후 매일 아침 알림톡으로 영어 표현과 복습 링크를 받습니다.</p>
-          <a href="#product?slug=business-english">인기 상품 보기</a>
+          <p>${
+            isPilotLaunch()
+              ? `${escapeHtml(pilotTrialLabel())}으로 시작하세요. 결제 없이 신청하고 매일 아침 알림톡으로 표현과 복습 링크를 받습니다.`
+              : "결제 후 매일 아침 알림톡으로 영어 표현과 복습 링크를 받습니다."
+          }</p>
+          <div class="hero-cta-row">
+            <a class="btn primary" href="#checkout?slug=business-english">${escapeHtml(isPilotLaunch() ? pilotTrialLabel() + " 시작" : "인기 상품 보기")}</a>
+            <a class="btn secondary" href="#today?date=${encodeURIComponent(todayISO())}">오늘 표현 미리보기</a>
+          </div>
         </div>
       </section>
 
       <section class="store-strip">
-        <div><strong>${stats.paidOrders}</strong><span>결제 완료</span></div>
+        <div><strong>${stats.paidOrders}</strong><span>${isPilotLaunch() ? "체험 신청" : "결제 완료"}</span></div>
         <div><strong>${stats.activeSubscriptions}</strong><span>알림톡 구독</span></div>
         <div><strong>${stats.clicks}</strong><span>복습 클릭</span></div>
       </section>
@@ -1019,6 +1148,12 @@ function renderProductSection(section) {
 
 function renderProductCard(product) {
   const detailHref = `#product?slug=${encodeURIComponent(product.slug)}`;
+  const trialHref = `#checkout?slug=${encodeURIComponent(product.slug)}`;
+  const priceBlock = isPilotLaunch()
+    ? `<p class="sale-price trial-price"><span class="trial-badge">${escapeHtml(pilotTrialLabel())}</span></p>
+        <p class="muted price-after-trial">체험 후 ${escapeHtml(product.price)} · ${escapeHtml(product.duration)}</p>`
+    : `<p class="original-price">${escapeHtml(product.original)}</p>
+        <p class="sale-price"><span>${escapeHtml(product.discount)}</span> ${escapeHtml(product.price)}</p>`;
   return `
     <article class="product-card">
       <a class="product-visual ${product.theme}" href="${detailHref}" aria-label="${escapeHtml(product.title)}">
@@ -1029,10 +1164,9 @@ function renderProductCard(product) {
       </a>
       <a class="product-info" href="${detailHref}">
         <h3>${escapeHtml(product.title)}</h3>
-        <p class="original-price">${escapeHtml(product.original)}</p>
-        <p class="sale-price"><span>${escapeHtml(product.discount)}</span> ${escapeHtml(product.price)}</p>
-        <p class="time-left">◷ ${escapeHtml(product.countdown)}</p>
-        <p class="pay-mark">카카오페이 · 네이버페이</p>
+        ${priceBlock}
+        <p class="pay-mark">${isPilotLaunch() ? "카카오 알림톡 · 웹 복습" : "카카오페이 · 네이버페이"}</p>
+        <span class="product-card-cta">${escapeHtml(isPilotLaunch() ? "체험 신청 →" : "자세히 보기 →")}</span>
       </a>
     </article>
   `;
@@ -1060,8 +1194,13 @@ function renderProductDetail() {
             <p class="detail-price"><span>${escapeHtml(product.discount)}</span>${escapeHtml(product.price)}</p>
             <p class="muted">${escapeHtml(product.duration)} 동안 매일 카카오 알림톡 발송</p>
             <div class="checkout-actions">
-              <a class="pay-cta naver" href="#checkout?slug=${encodeURIComponent(product.slug)}&pay=naverpay">N 네이버페이로 결제</a>
-              <a class="pay-cta kakao" href="#checkout?slug=${encodeURIComponent(product.slug)}&pay=kakaopay">카카오페이로 결제</a>
+              ${
+                isPilotLaunch()
+                  ? `<a class="pay-cta pilot" href="#checkout?slug=${encodeURIComponent(product.slug)}">${escapeHtml(pilotTrialLabel())} 시작하기</a>
+                     <a class="btn secondary" href="#today?date=${encodeURIComponent(todayISO())}">오늘 표현 미리보기</a>`
+                  : `<a class="pay-cta naver" href="#checkout?slug=${encodeURIComponent(product.slug)}&pay=naverpay">네이버페이로 결제</a>
+                     <a class="pay-cta kakao" href="#checkout?slug=${encodeURIComponent(product.slug)}&pay=kakaopay">카카오페이로 결제</a>`
+              }
             </div>
           </div>
         </div>
@@ -1081,8 +1220,12 @@ function renderProductDetail() {
           </article>
           <article>
             <span>03</span>
-            <strong>간편결제 완료</strong>
-            <p>네이버페이 또는 카카오페이 결제 완료 후 구독이 활성화됩니다.</p>
+            <strong>${isPilotLaunch() ? "무료 체험 신청" : "간편결제 완료"}</strong>
+            <p>${
+              isPilotLaunch()
+                ? "이름·연락처·필수 동의를 남기면 체험이 시작됩니다. 결제는 체험 종료 후 안내됩니다."
+                : "네이버페이 또는 카카오페이 결제 완료 후 구독이 활성화됩니다."
+            }</p>
           </article>
           <article>
             <span>04</span>
@@ -1120,15 +1263,20 @@ function renderCheckout() {
   const { params } = routeInfo();
   const product = findProduct(params.get("slug"));
   const selectedPay = params.get("pay") || "naverpay";
+  const pilot = isPilotLaunch();
 
   return shell(`
     <main class="page checkout-page">
       <section class="container">
         <div class="checkout-head">
           <div>
-            <p class="store-eyebrow">Checkout</p>
-            <h1>결제 후 매일 카카오 알림톡으로 받아보세요.</h1>
-            <p class="lead">실제 출시 시 네이버페이/카카오페이 승인 결과와 카카오 알림톡 발송 동의를 서버에서 검증합니다.</p>
+            <p class="store-eyebrow">${pilot ? "Free Trial" : "Checkout"}</p>
+            <h1>${pilot ? `${escapeHtml(pilotTrialLabel())} 신청` : "결제 후 매일 카카오 알림톡으로 받아보세요."}</h1>
+            <p class="lead">${
+              pilot
+                ? "지금은 결제 없이 신청만 받습니다. 체험 기간 동안 매일 알림톡으로 표현과 복습 링크를 보내 드립니다."
+                : "결제 승인 결과와 카카오 알림톡 발송 동의를 서버에서 검증합니다."
+            }</p>
           </div>
           <a class="btn secondary" href="#product?slug=${encodeURIComponent(product.slug)}">상품 상세로 돌아가기</a>
         </div>
@@ -1137,25 +1285,25 @@ function renderCheckout() {
           <form class="checkout-form" id="checkout-form">
             <input type="hidden" name="productSlug" value="${escapeHtml(product.slug)}" />
             <section class="panel form">
-              <h2>구매자 정보</h2>
+              <h2>${pilot ? "체험 신청 정보" : "구매자 정보"}</h2>
               <div class="form-grid two">
                 <div class="field">
                   <label for="name">이름</label>
-                  <input id="name" name="name" required placeholder="권오인" />
+                  <input id="name" name="name" required placeholder="홍길동" autocomplete="name" />
                 </div>
                 <div class="field">
                   <label for="phone">휴대폰 번호</label>
-                  <input id="phone" name="phone" required placeholder="010-1234-5678" />
+                  <input id="phone" name="phone" required placeholder="010-1234-5678" autocomplete="tel" />
                 </div>
               </div>
               <div class="form-grid two">
                 <div class="field">
                   <label for="email">이메일</label>
-                  <input id="email" name="email" type="email" placeholder="you@example.com" />
+                  <input id="email" name="email" type="email" placeholder="name@email.com" autocomplete="email" />
                 </div>
                 <div class="field">
                   <label for="preferredTime">알림톡 수신 시간</label>
-                  <input id="preferredTime" name="preferredTime" type="time" value="08:30" />
+                  <input id="preferredTime" name="preferredTime" type="time" value="${escapeHtml(getSiteConfig().defaultPreferredTime)}" />
                 </div>
               </div>
               <div class="form-grid two">
@@ -1179,18 +1327,31 @@ function renderCheckout() {
               </div>
             </section>
 
+            ${
+              pilot
+                ? `<section class="panel form pilot-notice">
+                    <h2>체험 안내</h2>
+                    <ul class="policy-list">
+                      <li>${escapeHtml(pilotTrialLabel())} 동안 결제가 이루어지지 않습니다.</li>
+                      <li>체험 종료 후 유료 전환 여부를 별도 안내합니다.</li>
+                      <li>카카오톡 채널 추가 후 알림톡을 받을 수 있습니다.</li>
+                    </ul>
+                  </section>`
+                : `<section class="panel form">
+                    <h2>결제 수단</h2>
+                    <div class="payment-grid" role="radiogroup" aria-label="결제 수단">
+                      ${paymentOption("naverpay", "N", "네이버페이", "네이버 앱 간편결제", selectedPay)}
+                      ${paymentOption("kakaopay", "K", "카카오페이", "카카오톡 간편결제", selectedPay)}
+                    </div>
+                  </section>`
+            }
             <section class="panel form">
-              <h2>결제 수단</h2>
-              <div class="payment-grid" role="radiogroup" aria-label="결제 수단">
-                ${paymentOption("naverpay", "N", "네이버페이", "네이버 앱 간편결제", selectedPay)}
-                ${paymentOption("kakaopay", "K", "카카오페이", "카카오톡 간편결제", selectedPay)}
-              </div>
               <div class="consent-group">
                 <div class="consent-group-head">
                   <h3>동의 항목</h3>
                   <span class="consent-version">동의 문구 버전 ${escapeHtml(CONSENT_VERSION)}</span>
                 </div>
-                <p class="consent-note muted">필수 항목에 동의해야 결제를 진행할 수 있습니다.</p>
+                <p class="consent-note muted">필수 항목에 동의해야 ${pilot ? "체험 신청" : "결제"}을 진행할 수 있습니다.</p>
 
                 <label class="checkbox-row consent-item">
                   <input type="checkbox" name="consentPrivacy" required />
@@ -1220,16 +1381,18 @@ function renderCheckout() {
                   <input type="checkbox" name="consentMarketing" />
                   <span>
                     <strong>[선택]</strong> 마케팅·광고성 정보 수신 동의
-                    <small class="consent-summary">이벤트, 프로모션 등 광고성 정보를 카카오톡으로 받는 데 동의합니다. 동의하지 않아도 결제는 가능하며, 언제든지 수신 거부할 수 있습니다.</small>
+                    <small class="consent-summary">이벤트, 프로모션 등 광고성 정보를 카카오톡으로 받는 데 동의합니다. 동의하지 않아도 ${pilot ? "체험 신청" : "결제"}은 가능하며, 언제든지 수신 거부할 수 있습니다.</small>
                   </span>
                 </label>
               </div>
-              <button class="btn primary checkout-submit" type="submit">${escapeHtml(product.price)} 결제하기</button>
+              <button class="btn primary checkout-submit" type="submit">${
+                pilot ? `${escapeHtml(pilotTrialLabel())} 신청하기` : `${escapeHtml(product.price)} 결제하기`
+              }</button>
             </section>
           </form>
 
           <aside class="order-summary">
-            <h2>주문 요약</h2>
+            <h2>${pilot ? "체험 요약" : "주문 요약"}</h2>
             <div class="summary-product">
               <div class="summary-thumb ${product.theme}">${escapeHtml(product.tag)}</div>
               <div>
@@ -1238,14 +1401,20 @@ function renderCheckout() {
               </div>
             </div>
             <dl>
-              <div><dt>상품금액</dt><dd>${escapeHtml(product.original)}</dd></div>
-              <div><dt>할인</dt><dd>${escapeHtml(product.discount)}</dd></div>
-              <div><dt>결제금액</dt><dd>${escapeHtml(product.price)}</dd></div>
-              <div><dt>결제수단</dt><dd>${paymentLabel(selectedPay)}</dd></div>
+              ${
+                pilot
+                  ? `<div><dt>체험 기간</dt><dd>${escapeHtml(pilotTrialLabel())}</dd></div>
+                     <div><dt>체험 중 결제</dt><dd>없음</dd></div>
+                     <div><dt>체험 후 요금</dt><dd>${escapeHtml(product.price)}</dd></div>`
+                  : `<div><dt>상품금액</dt><dd>${escapeHtml(product.original)}</dd></div>
+                     <div><dt>할인</dt><dd>${escapeHtml(product.discount)}</dd></div>
+                     <div><dt>결제금액</dt><dd>${escapeHtml(product.price)}</dd></div>
+                     <div><dt>결제수단</dt><dd>${paymentLabel(selectedPay)}</dd></div>`
+              }
             </dl>
             <ol class="checkout-flow">
-              <li>결제 승인</li>
-              <li>구독 활성화</li>
+              <li>${pilot ? "체험 신청" : "결제 승인"}</li>
+              <li>카카오 채널 추가</li>
               <li>알림톡 발송 예약</li>
               <li>매일 웹 학습 링크 수신</li>
             </ol>
@@ -1278,9 +1447,9 @@ function renderMypage() {
           <div>
             <p class="store-eyebrow">My Page</p>
             <h1>구독과 알림톡 수신 상태를 확인합니다.</h1>
-            <p class="lead">정식 서비스에서는 로그인 후 결제 내역, 환불, 수신 시간 변경, 해지를 처리합니다.</p>
+            <p class="lead">체험·구독 상태, 수신 시간, 해지는 마이페이지에서 확인합니다. 정식 서비스에서는 로그인 후 변경합니다.</p>
           </div>
-          <a class="btn primary" href="#checkout?slug=business-english">새 구독 결제</a>
+          <a class="btn primary" href="#checkout?slug=business-english">${isPilotLaunch() ? "다른 코스 체험 신청" : "새 구독 결제"}</a>
         </div>
         <div class="mypage-grid">
           <section class="panel">
@@ -1288,7 +1457,7 @@ function renderMypage() {
             ${
               latestSubscription
                 ? subscriptionCard(latestSubscription)
-                : `<p class="muted">아직 결제된 구독이 없습니다.</p><a class="btn secondary" href="#home">상품 둘러보기</a>`
+                : `<p class="muted">아직 ${isPilotLaunch() ? "신청한" : "결제된"} 구독이 없습니다.</p><a class="btn secondary" href="#home">상품 둘러보기</a>`
             }
           </section>
           <section class="panel">
@@ -1330,7 +1499,7 @@ function orderRow(order) {
       <td>${formatDateTime(order.createdAt)}</td>
       <td>${escapeHtml(product.title)}</td>
       <td>${paymentLabel(order.paymentMethod)}<br /><span class="muted">${formatPrice(order.amount)}</span></td>
-      <td><span class="status-pill">${order.status === "paid" ? "결제완료" : order.status}</span></td>
+      <td><span class="status-pill">${orderStatusLabel(order.status)}</span></td>
     </tr>
   `;
 }
@@ -1391,7 +1560,7 @@ function phonePreview(message) {
   `;
 }
 
-const CONSENT_VERSION = "v2026-05-29";
+const CONSENT_VERSION = "v2026-06-04";
 
 function renderSubscribe() {
   return shell(`
@@ -1407,21 +1576,21 @@ function renderSubscribe() {
             <div class="form-grid two">
               <div class="field">
                 <label for="name">이름</label>
-                <input id="name" name="name" required placeholder="권오인" />
+                <input id="name" name="name" required placeholder="홍길동" autocomplete="name" />
               </div>
               <div class="field">
                 <label for="phone">휴대폰 번호</label>
-                <input id="phone" name="phone" required placeholder="010-1234-5678" />
+                <input id="phone" name="phone" required placeholder="010-1234-5678" autocomplete="tel" />
               </div>
             </div>
             <div class="form-grid two">
               <div class="field">
                 <label for="email">이메일</label>
-                <input id="email" name="email" type="email" placeholder="you@example.com" />
+                <input id="email" name="email" type="email" placeholder="name@email.com" autocomplete="email" />
               </div>
               <div class="field">
                 <label for="preferredTime">받고 싶은 시간</label>
-                <input id="preferredTime" name="preferredTime" type="time" value="08:30" />
+                <input id="preferredTime" name="preferredTime" type="time" value="${escapeHtml(getSiteConfig().defaultPreferredTime)}" />
               </div>
             </div>
             <div class="form-grid two">
@@ -1511,22 +1680,25 @@ function renderThanks() {
   const message = findMessageByDate(todayISO());
   const latestOrder = getOrders()[0];
   const latestProduct = latestOrder ? findProduct(latestOrder.productSlug) : null;
+  const pilot = isPilotLaunch();
+  const preferredTime = getSiteConfig().defaultPreferredTime;
   return shell(`
     <main class="page">
       <section class="container purchase-complete">
         <div>
-          <div class="eyebrow"><span class="pulse-dot"></span>결제 완료</div>
-          <h1>구독이 활성화되었습니다.</h1>
+          <div class="eyebrow"><span class="pulse-dot"></span>${pilot ? "신청 완료" : "결제 완료"}</div>
+          <h1>${pilot ? "무료 체험이 시작되었습니다." : "구독이 활성화되었습니다."}</h1>
           <p class="lead">${
             latestProduct
-              ? `${escapeHtml(latestProduct.title)} 결제가 완료되었습니다.`
-              : "결제가 완료되었습니다."
+              ? `${escapeHtml(latestProduct.title)} ${pilot ? "체험 신청" : "결제"}이 완료되었습니다.`
+              : pilot
+                ? "체험 신청이 완료되었습니다."
+                : "결제가 완료되었습니다."
           } 매일 설정한 시간에 카카오톡 알림톡으로 영어 표현을 보내드립니다.</p>
           <div class="channel-cta">
             <strong class="channel-cta-title">카카오톡 채널을 꼭 추가해 주세요</strong>
-            <p class="channel-cta-hint">채널을 추가해야 알림톡이 도착합니다. 채널을 추가하면 다음 발송 시간(매일 오전 8:30 예정)에 맞춰 첫 알림톡이 도착하며, 보통 영업일 기준 24시간 이내에 받아보실 수 있습니다.</p>
-            <!-- TODO(launch): 실제 카카오톡 채널 추가 URL로 교체 -->
-            <a class="btn primary channel-cta-btn" href="#mypage">채널 추가 안내 보기</a>
+            <p class="channel-cta-hint">채널을 추가해야 알림톡이 도착합니다. 채널 추가 후 다음 발송 시간(매일 ${escapeHtml(preferredTime)} 예정)에 맞춰 첫 알림톡이 발송됩니다.</p>
+            ${kakaoChannelButton("btn primary channel-cta-btn")}
           </div>
           <div class="button-row">
             <a class="btn secondary" href="#today?date=${encodeURIComponent(message.sendDate)}&from=kakao">첫 알림톡 링크 미리보기</a>
@@ -1605,7 +1777,7 @@ function renderArchive() {
           <div>
             <div class="eyebrow"><span class="pulse-dot"></span>표현 아카이브</div>
             <h1>지난 영어 표현을 다시 봅니다.</h1>
-            <p class="lead">MVP에서는 공개 아카이브로 두고, 유료화 시 지난 표현 전체 보기와 주간 복습을 잠금 해제할 수 있습니다.</p>
+            <p class="lead">지금은 체험 기간 동안 지난 표현을 자유롭게 복습할 수 있습니다.</p>
           </div>
         </div>
         <div class="archive-grid">
@@ -1638,7 +1810,9 @@ function renderArchive() {
 // This passphrase is an MVP-only client-side gate. It is NOT real security:
 // the value ships in the JS bundle and anyone can read it. Replace with
 // real server-side auth (session/token) before production.
-const ADMIN_PASSPHRASE = "admin1234";
+function adminPassphrase() {
+  return getSiteConfig().adminPassphrase || DEFAULT_SITE_CONFIG.adminPassphrase;
+}
 
 function isAdminAuthenticated() {
   return getItem(STORAGE_KEYS.adminSession) === "1";
@@ -2180,6 +2354,11 @@ function render() {
     };
     app.innerHTML = (views[name] || renderHome)();
     bindForms();
+    if (SCROLL_SECTIONS.has(name)) {
+      requestAnimationFrame(() => {
+        document.getElementById(name)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   } catch (error) {
     app.innerHTML = `
       <main class="page">
@@ -2222,7 +2401,7 @@ function bindForms() {
       event.preventDefault();
       const passphrase = new FormData(event.currentTarget).get("passphrase");
       // MVP-only client-side check. NOT real auth (see ADMIN_PASSPHRASE).
-      if (passphrase === ADMIN_PASSPHRASE) {
+      if (passphrase === adminPassphrase()) {
         setItem(STORAGE_KEYS.adminSession, "1");
         showToast("관리자 인증되었습니다.");
         render();
@@ -2234,7 +2413,7 @@ function bindForms() {
   }
 }
 
-function handleSubscribe(event) {
+async function handleSubscribe(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
 
@@ -2248,6 +2427,30 @@ function handleSubscribe(event) {
   if (!consentRequiredAgreed) {
     showToast("필수 동의 항목에 모두 동의해야 신청할 수 있습니다.");
     return;
+  }
+
+  // 백엔드가 연결되어 있으면 서버에 구독을 등록하고 알림톡 발송을 맡긴다.
+  if (apiEnabled()) {
+    try {
+      await apiPost("/subscriptions", {
+        name: form.get("name").trim(),
+        phone: form.get("phone").trim(),
+        email: form.get("email").trim(),
+        level: form.get("level"),
+        interest: form.get("interest"),
+        preferredTime: form.get("preferredTime"),
+        consentVersion: CONSENT_VERSION,
+        consents: {
+          privacy: consentPrivacy,
+          terms: consentTerms,
+          phone: consentPhone,
+          marketing: form.get("consentMarketing") === "on",
+        },
+      });
+    } catch (error) {
+      showToast(`신청 처리에 실패했습니다: ${error.message}`);
+      return;
+    }
   }
 
   const customers = getCustomers();
@@ -2277,7 +2480,7 @@ function handleSubscribe(event) {
   navigate("thanks");
 }
 
-function handleCheckout(event) {
+async function handleCheckout(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
 
@@ -2289,11 +2492,45 @@ function handleCheckout(event) {
 
   // native required를 우회한 제출에 대비해 JS에서도 필수 동의를 강제한다.
   if (!consentRequiredAgreed) {
-    showToast("필수 동의 항목에 모두 동의해야 결제를 진행할 수 있습니다.");
+    showToast(
+      `필수 동의 항목에 모두 동의해야 ${isPilotLaunch() ? "체험 신청" : "결제"}을 진행할 수 있습니다.`,
+    );
     return;
   }
 
   const product = findProduct(form.get("productSlug"));
+  const pilot = isPilotLaunch();
+
+  // 백엔드가 연결되어 있으면 서버에 구매/구독을 등록하고 매일 알림톡 발송을 맡긴다.
+  if (apiEnabled()) {
+    try {
+      await apiPost("/subscriptions", {
+        name: form.get("name").trim(),
+        phone: form.get("phone").trim(),
+        email: form.get("email").trim(),
+        level: form.get("level"),
+        interest: form.get("interest"),
+        preferredTime: form.get("preferredTime"),
+        productSlug: product.slug,
+        amount: pilot ? 0 : product.priceValue,
+        paymentMethod: pilot ? "trial" : form.get("paymentMethod"),
+        durationDays: parseInt(product.duration, 10) || null,
+        consentVersion: CONSENT_VERSION,
+        consents: {
+          privacy: consentPrivacy,
+          terms: consentTerms,
+          phone: consentPhone,
+          marketing: form.get("consentMarketing") === "on",
+        },
+      });
+    } catch (error) {
+      showToast(
+        `${pilot ? "체험 신청" : "결제"} 처리에 실패했습니다: ${error.message}`,
+      );
+      return;
+    }
+  }
+
   const now = new Date().toISOString();
   const customerId = uid("cus");
   const orderId = uid("ord");
@@ -2323,11 +2560,11 @@ function handleCheckout(event) {
     id: orderId,
     customerId,
     productSlug: product.slug,
-    amount: product.priceValue,
+    amount: pilot ? 0 : product.priceValue,
     currency: "KRW",
-    paymentMethod: form.get("paymentMethod"),
-    providerPaymentId: uid(form.get("paymentMethod") || "pay"),
-    status: "paid",
+    paymentMethod: pilot ? "trial" : form.get("paymentMethod"),
+    providerPaymentId: uid(pilot ? "trial" : form.get("paymentMethod") || "pay"),
+    status: pilot ? "trial" : "paid",
     paidAt: now,
     createdAt: now,
   };
@@ -2346,7 +2583,11 @@ function handleCheckout(event) {
   writeStore(STORAGE_KEYS.customers, [customer, ...getCustomers()]);
   writeStore(STORAGE_KEYS.orders, [order, ...getOrders()]);
   writeStore(STORAGE_KEYS.subscriptions, [subscription, ...getSubscriptions()]);
-  showToast(`${paymentLabel(order.paymentMethod)} 결제가 완료되었습니다.`);
+  showToast(
+    pilot
+      ? `${pilotTrialLabel()} 신청이 완료되었습니다.`
+      : `${paymentLabel(order.paymentMethod)} 결제가 완료되었습니다.`,
+  );
   navigate("thanks");
 }
 
@@ -2569,9 +2810,17 @@ async function copyText(text) {
 function policyDraftNote() {
   return `
     <div class="policy-draft-note" role="note">
-      <strong>MVP 초안 안내</strong>
-      <p>본 문서는 서비스 준비 단계에서 작성된 초안이며, 법무 검토 완료 후 정식 문서로 대체됩니다. 일부 항목(회사명·연락처 등)은 운영 준비 중인 임시 값입니다.</p>
+      <strong>정책 안내</strong>
+      <p>본 문서는 ${escapeHtml(brandNameKo())} 공개 파일럿 기준 초안입니다. 사업자 정보·연락처는 운영 확정 후 갱신되며, 법무 검토 후 정식 문서로 대체될 수 있습니다.</p>
     </div>
+  `;
+}
+
+function policyContactBlock() {
+  return `
+    <li><strong>서비스명:</strong> ${escapeHtml(brandNameKo())} (${escapeHtml(brandNameEn())})</li>
+    <li><strong>문의:</strong> ${supportContactHtml()}</li>
+    <li><strong>웹사이트:</strong> <a href="${escapeHtml(getSiteConfig().siteUrl)}">${escapeHtml(getSiteConfig().siteUrl)}</a></li>
   `;
 }
 
@@ -2623,12 +2872,9 @@ function renderPrivacy() {
 
           <h2>6. 개인정보 보호책임자 및 문의처</h2>
           <ul class="policy-list">
-            <li><strong>회사명:</strong> 운영 준비 중</li>
-            <li><strong>개인정보 보호책임자:</strong> 운영 준비 중</li>
-            <li><strong>연락처(이메일):</strong> 운영 준비 중</li>
-            <li><strong>문의 전화:</strong> 운영 준비 중</li>
+            ${policyContactBlock()}
           </ul>
-          <p class="muted">시행일: 운영 준비 중 (정식 시행일은 법무 검토 후 고지됩니다.)</p>
+          <p class="muted">시행일: 2026년 6월 4일 (변경 시 웹사이트에 고지합니다.)</p>
         </article>
       </section>
     </main>
@@ -2681,7 +2927,7 @@ function renderTerms() {
           <h2>제8조 (분쟁 해결 및 준거법)</h2>
           <p>본 약관은 대한민국 법령에 따라 해석되며, 서비스 이용과 관련한 분쟁은 관련 법령 및 운영자 소재지를 관할하는 법원을 전속 관할 법원으로 합니다.</p>
 
-          <p class="muted">시행일: 운영 준비 중 (정식 시행일은 법무 검토 후 고지됩니다.)</p>
+          <p class="muted">시행일: 2026년 6월 4일 · 문의: ${supportContactHtml()}</p>
         </article>
       </section>
     </main>
@@ -2726,8 +2972,8 @@ function renderRefund() {
           </ul>
 
           <h2>5. 환불 신청 방법</h2>
-          <p>환불은 개인정보 보호책임자(문의처: 운영 준비 중)에게 이메일로 신청할 수 있으며, 결제 수단·결제일을 함께 알려주시면 신속히 처리됩니다.</p>
-          <p class="muted">시행일: 운영 준비 중 (정식 시행일은 법무 검토 후 고지됩니다.)</p>
+          <p>환불은 ${supportContactHtml()}로 신청할 수 있으며, 결제 수단·결제일을 함께 알려주시면 신속히 처리합니다. 파일럿 무료 체험 기간에는 결제가 없으므로 환불 대상이 아닙니다.</p>
+          <p class="muted">시행일: 2026년 6월 4일</p>
         </article>
       </section>
     </main>
@@ -2795,7 +3041,7 @@ function renderUnsubscribe() {
   `);
 }
 
-function handleUnsubscribe(event) {
+async function handleUnsubscribe(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   const phone = (form.get("phone") || "").trim();
@@ -2804,6 +3050,19 @@ function handleUnsubscribe(event) {
   if (!phone && !email) {
     showToast("휴대폰 번호 또는 이메일을 입력해 주세요.");
     return;
+  }
+
+  // 백엔드가 연결되어 있으면 서버 구독도 함께 해지한다.
+  if (apiEnabled()) {
+    try {
+      await apiPost("/unsubscribe", { phone, email });
+      showToast("수신거부가 처리되었습니다.");
+      navigate("unsubscribe?done=1");
+      return;
+    } catch (error) {
+      showToast(`수신거부 처리에 실패했습니다: ${error.message}`);
+      return;
+    }
   }
 
   const customers = getCustomers();

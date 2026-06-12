@@ -1,8 +1,13 @@
 .DS_Store
+._*
+
 node_modules/
 .env
 .env.*
 !.env.example
+
+# 백엔드 파일 DB (고객 개인정보 포함 — 커밋 금지)
+server/data/
 
 # Claude Code transient agent worktrees
 .claude/worktrees/

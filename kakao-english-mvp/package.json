@@ -1,0 +1,11 @@
+{
+  "name": "daily-talk-english-mvp",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8765",
+    "smoke": "node smoke-test.cjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}
